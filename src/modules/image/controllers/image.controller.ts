@@ -1,8 +1,7 @@
-import { Controller, Get, HttpCode, Req, UseGuards, Post } from '@nestjs/common';
+import { Controller, Get, HttpCode, Post } from '@nestjs/common';
 import { ImageService } from '../providers/image.service';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { executeError } from '../../../utils/error';
-import { FirebaseAuthGuard } from 'src/modules/firebase/firebase-Auth.guard';
 
 @Controller('image')
 export class ImageController {
@@ -21,25 +20,22 @@ export class ImageController {
   }
 
   @Get('')
-  getImages(@Req() req) {
+  getImages() {
     return { ok: true };
   }
 
   @Post('/upload')
-  upload(@Req() req) {
+  upload() {
     return { ok: true };
   }
-
 
   @Get('/:id_image/picks')
-  getPicks(@Req() req) {
+  getPicks() {
     return { ok: true };
   }
-
 
   @Post('/:id_image/picks')
-  createPick(@Req() req) {
+  createPick() {
     return { ok: true };
   }
-
 }

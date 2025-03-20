@@ -1,8 +1,7 @@
-import { Controller, Get, HttpCode, Req, UseGuards, Post } from '@nestjs/common';
+import { Controller, Get, HttpCode } from '@nestjs/common';
 import { BrandService } from '../providers/brand.service';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { executeError } from '../../../utils/error';
-import { FirebaseAuthGuard } from 'src/modules/firebase/firebase-auth.guard';
 
 @Controller('brand')
 export class BrandController {
@@ -21,8 +20,7 @@ export class BrandController {
   }
 
   @Get('')
-  getBrands(@Req() req) {
+  getBrands() {
     return { ok: true };
   }
-
 }

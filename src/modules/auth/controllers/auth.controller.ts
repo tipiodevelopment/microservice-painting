@@ -1,8 +1,7 @@
-import { Controller, Get, HttpCode, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, HttpCode, Req } from '@nestjs/common';
 import { AuthService } from '../providers/auth.service';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { executeError } from '../../../utils/error';
-import { FirebaseAuthGuard } from 'src/modules/firebase/firebase-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -21,19 +20,17 @@ export class AuthController {
   }
 
   @Get('/profile')
-  @UseGuards(FirebaseAuthGuard)
   getProfile(@Req() req) {
     return { user: req.user };
   }
 
   @Get('/login')
-  login(@Req() req) {
+  login() {
     return { ok: true };
   }
 
   @Get('/register')
-  register(@Req() req) {
+  register() {
     return { ok: true };
   }
-
 }
