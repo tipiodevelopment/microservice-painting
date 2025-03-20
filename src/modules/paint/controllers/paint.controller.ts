@@ -1,8 +1,7 @@
-import { Controller, Get, HttpCode, Req, UseGuards, Post, Delete, Update } from '@nestjs/common';
+import { Controller, Get, HttpCode, Post, Delete, Put } from '@nestjs/common';
 import { PaintService } from '../providers/paint.service';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { executeError } from '../../../utils/error';
-import { FirebaseAuthGuard } from 'src/modules/firebase/firebase-auth.guard';
 
 @Controller('paint')
 export class PaintController {
@@ -21,25 +20,22 @@ export class PaintController {
   }
 
   @Get('')
-  getPaints(@Req() req) {
+  getPaints() {
     return { ok: true };
   }
 
   @Post('')
-  createPaint(@Req() req) {
+  createPaint() {
     return { ok: true };
   }
 
   @Delete('')
-  deletePaint(@Req() req) {
+  deletePaint() {
     return { ok: true };
   }
 
-
-  
-  @Update('')
-  updatePaint(@Req() req) {
+  @Put('')
+  updatePaint() {
     return { ok: true };
   }
-
 }
