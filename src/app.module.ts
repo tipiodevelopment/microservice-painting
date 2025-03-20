@@ -1,5 +1,9 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from './modules/auth/auth.module';
+import { ImageModule } from './modules/image/image.module';
+import { BrandModule } from './modules/brand/brand.module';
+import { PaintModule } from './modules/paint/paint.module';
+
 import { ConfigModule } from '@nestjs/config';
 import { ConfigurationModule } from './config/config.module';
 import { ConfigService } from './config/providers/config.service';
@@ -16,6 +20,9 @@ import { ResponseInterceptor } from './interceptors/response/response.intercepto
     }),
     ConfigurationModule,
     AuthModule,
+    ImageModule,
+    BrandModule,
+    PaintModule,
   ],
   providers: [
     {
