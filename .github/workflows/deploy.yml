@@ -69,7 +69,7 @@ jobs:
       - name: Authenticate kubectl for main
         if: github.ref == 'refs/heads/main'
         run: |
-          gcloud container clusters get-credentials tipio-production --region europe-north1-a
+          gcloud container clusters get-credentials paints-454220 --region europe-north1-a
 
       - name: Authenticate kubectl for staging
         if: github.ref == 'refs/heads/staging'
