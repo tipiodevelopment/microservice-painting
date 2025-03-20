@@ -25,4 +25,15 @@ export class AuthController {
   getProfile(@Req() req) {
     return { user: req.user };
   }
+
+  @Get('/login')
+  login(@Req() req) {
+    return { ok: true };
+  }
+
+  @Get('/register')
+  register(@Req() req) {
+    return { ok: true };
+  }
+
 }
