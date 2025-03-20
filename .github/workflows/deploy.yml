@@ -75,12 +75,12 @@ jobs:
       - name: Authenticate kubectl for staging
         if: github.ref == 'refs/heads/staging'
         run: |
-          gcloud container clusters get-credentials tipio-staging-development  --region europe-north1-a
+          gcloud container clusters get-credentials paints-454220  --region europe-north1-a
 
       - name: Authenticate kubectl for development
         if: github.ref == 'refs/heads/development'
         run: |
-          gcloud container clusters get-credentials tipio-staging-development  --region europe-north1-a
+          gcloud container clusters get-credentials paints-454220  --region europe-north1-a
 
       - name: Deploy with Helm
         env:
