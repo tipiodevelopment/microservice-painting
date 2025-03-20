@@ -45,7 +45,6 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: credentials.json
         run: |
-          gcloud auth list
           gsutil cp gs://paints-env/${{ github.ref_name }}/.env $(pwd)/.env        
 
       - name: Configure Docker, build and push
