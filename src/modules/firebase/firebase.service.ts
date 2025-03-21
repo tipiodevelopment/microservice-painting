@@ -83,8 +83,14 @@ export class FirebaseService {
     };
 
     try {
-      const firebaseResponse = await this.firestore.collection(collectionName);
-      response.data = firebaseResponse;
+      const firebaseResponse = await this.firestore
+        .collection(collectionName)
+        .get();
+      const documents = firebaseResponse.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      response.data = documents;
     } catch (error) {
       response.message = error.message;
       response.executed = false;

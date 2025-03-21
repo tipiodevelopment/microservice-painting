@@ -33,6 +33,8 @@ export class AuthController {
 
   @UseGuards(FirebaseAuthGuard)
   @Get('/profile')
+  @HttpCode(200)
+  @ApiResponse({ status: 200, description: 'OK' })
   getProfile(@Req() req) {
     const currentUser = req.user;
     return this.authService.getProfile(currentUser);

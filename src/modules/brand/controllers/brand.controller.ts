@@ -20,7 +20,13 @@ export class BrandController {
   }
 
   @Get('')
+  @HttpCode(200)
+  @ApiResponse({ status: 200, description: 'OK' })
   getBrands() {
-    return { ok: true };
+    try {
+      return this._brandService.getBrands();
+    } catch (error) {
+      executeError(error);
+    }
   }
 }
