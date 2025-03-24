@@ -14,6 +14,7 @@ import { executeError } from '../../../utils/error';
 import { SendAuthRegister } from '../dtos/SendAuthRegister.dto';
 import { SendSetRole } from '../dtos/SendSetRole.dto';
 import { FirebaseAuthGuard } from '../../../modules/firebase/firebase-auth.guard';
+import { SendAuthSignInWithGoogle } from '../dtos/SendAuthSignInWithGoogle.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -54,6 +55,25 @@ export class AuthController {
   ) {
     try {
       return this.authService.register(requestService);
+    } catch (error) {
+      executeError(error);
+    }
+  }
+
+  @Post('/sign-in-with-google')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Register user by Google login' })
+  @ApiResponse({ status: 200, description: 'OK' })
+  @ApiBody({
+    type: SendAuthSignInWithGoogle,
+    description: 'Register dto',
+  })
+  signInWithGoogle(
+    @Body()
+    requestService: SendAuthSignInWithGoogle,
+  ) {
+    try {
+      return this.authService.signInWithGoogle(requestService);
     } catch (error) {
       executeError(error);
     }

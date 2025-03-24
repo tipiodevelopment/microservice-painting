@@ -74,6 +74,57 @@ export class AuthService {
     }
   }
 
+  async signInWithGoogle(data: { idToken: string }) {
+    const response: ApiResponse = {
+      executed: true,
+      message: '',
+      data: null,
+    };
+
+    try {
+      const createdUser = await this.firebaseService.signInWithGoogle(
+        data.idToken,
+      );
+      if (!createdUser.executed) throw new Error(createdUser.message);
+
+      const currentDate = new Date();
+      const userData = {
+        id: createdUser.data.uid,
+        username: createdUser.data.name,
+        email: createdUser.data.email,
+        role: 'USER',
+        is_admin: false,
+        created_at: currentDate,
+        updated_at: currentDate,
+      };
+
+      const savedUser = await this.firebaseService.setOrAddDocument(
+        'users',
+        userData,
+        createdUser.data.uid,
+      );
+      if (!savedUser.executed) return createdUser;
+
+      const auditLog: AuditLog = {
+        changed_by: createdUser.data.uid,
+        changed_data: userData,
+        created_at: currentDate,
+        updated_at: currentDate,
+        operation: auditOperation.INSERT,
+        record_id: createdUser.data.uid,
+        table_name: auditTables.USERS,
+      };
+      await this.firebaseService.setOrAddDocument('audit_log', auditLog);
+
+      response.data = userData;
+    } catch (error) {
+      response.message = error.message;
+      response.executed = false;
+    } finally {
+      return response;
+    }
+  }
+
   async setRole(
     data: SendSetRole & { currentUser: any },
   ): Promise<ApiResponse> {

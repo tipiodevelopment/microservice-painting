@@ -75,6 +75,31 @@ export class FirebaseService {
     }
   }
 
+  async signInWithGoogle(idToken) {
+    const response: ApiResponse = {
+      executed: true,
+      message: '',
+      data: null,
+    };
+
+    try {
+      const decodedToken = await this.firebaseApp.auth().verifyIdToken(idToken);
+      const { uid, email, name } = decodedToken;
+
+      await this.firebaseApp.auth().createUser({
+        email,
+        displayName: name,
+      });
+
+      response.data = { uid, email, name };
+    } catch (error) {
+      response.message = error.message;
+      response.executed = false;
+    } finally {
+      return response;
+    }
+  }
+
   async getCollection(collectionName: string): Promise<ApiResponse> {
     const response: ApiResponse = {
       executed: true,
