@@ -125,6 +125,52 @@ export class AuthService {
     }
   }
 
+  async createUser(data: { uid: string; name: string; email: string }) {
+    const response: ApiResponse = {
+      executed: true,
+      message: '',
+      data: null,
+    };
+
+    try {
+      const currentDate = new Date();
+      const userData = {
+        id: data.uid,
+        username: data.name,
+        email: data.email,
+        role: 'USER',
+        is_admin: false,
+        created_at: currentDate,
+        updated_at: currentDate,
+      };
+
+      const savedUser = await this.firebaseService.setOrAddDocument(
+        'users',
+        userData,
+        data.uid,
+      );
+      if (!savedUser.executed) return savedUser;
+
+      const auditLog: AuditLog = {
+        changed_by: data.uid,
+        changed_data: userData,
+        created_at: currentDate,
+        updated_at: currentDate,
+        operation: auditOperation.INSERT,
+        record_id: data.uid,
+        table_name: auditTables.USERS,
+      };
+      await this.firebaseService.setOrAddDocument('audit_log', auditLog);
+
+      response.data = userData;
+    } catch (error) {
+      response.message = error.message;
+      response.executed = false;
+    } finally {
+      return response;
+    }
+  }
+
   async setRole(
     data: SendSetRole & { currentUser: any },
   ): Promise<ApiResponse> {

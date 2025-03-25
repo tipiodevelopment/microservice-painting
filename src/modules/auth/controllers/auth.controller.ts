@@ -15,6 +15,7 @@ import { SendAuthRegister } from '../dtos/SendAuthRegister.dto';
 import { SendSetRole } from '../dtos/SendSetRole.dto';
 import { FirebaseAuthGuard } from '../../../modules/firebase/firebase-auth.guard';
 import { SendAuthSignInWithGoogle } from '../dtos/SendAuthSignInWithGoogle.dto';
+import { SendAuthCreateUser } from '../dtos/SendAuthCreateUser.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -74,6 +75,25 @@ export class AuthController {
   ) {
     try {
       return this.authService.signInWithGoogle(requestService);
+    } catch (error) {
+      executeError(error);
+    }
+  }
+
+  @Post('/create-user')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Only create User Row' })
+  @ApiResponse({ status: 200, description: 'OK' })
+  @ApiBody({
+    type: SendAuthCreateUser,
+    description: 'Register dto',
+  })
+  createUser(
+    @Body()
+    requestService: SendAuthCreateUser,
+  ) {
+    try {
+      return this.authService.createUser(requestService);
     } catch (error) {
       executeError(error);
     }
