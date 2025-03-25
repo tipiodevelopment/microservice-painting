@@ -34,6 +34,7 @@ export class AuthService {
         data.password,
         data.username,
       );
+      console.log('***createdUser', createdUser);
       if (!createdUser.executed) throw new Error(createdUser.message);
 
       const currentDate = new Date();
@@ -161,8 +162,10 @@ export class AuthService {
         table_name: auditTables.USERS,
       };
       await this.firebaseService.setOrAddDocument('audit_log', auditLog);
-
-      response.data = userData;
+      const customToken = await this.firebaseService.createCustomToken(
+        userData.id,
+      );
+      response.data = { ...userData, customToken };
     } catch (error) {
       response.message = error.message;
       response.executed = false;

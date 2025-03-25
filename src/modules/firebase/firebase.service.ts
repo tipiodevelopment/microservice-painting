@@ -231,4 +231,8 @@ export class FirebaseService {
       return response;
     }
   }
+
+  async createCustomToken(uid: string): Promise<string> {
+    return await this.firebaseApp.auth().createCustomToken(uid);
+  }
 }
