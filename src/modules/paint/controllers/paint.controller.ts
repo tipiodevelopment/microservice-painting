@@ -28,6 +28,21 @@ export class PaintController {
     }
   }
 
+  @Get('/')
+  getAllPaints(
+    @Query('name') name?: string,
+    @Query('code') code?: string,
+    @Query('hex') hex?: string,
+    @Query('limit') limit = 10,
+    @Query('page') page?: number,
+  ) {
+    return this._paintService.getAllPaints(
+      { name, code, hex },
+      Number(limit),
+      page,
+    );
+  }
+
   @Get('/:brandId')
   getPaints(
     @Param('brandId') brandId: string,

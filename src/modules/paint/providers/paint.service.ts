@@ -13,6 +13,62 @@ export class PaintService {
     return `brands/${brandId}/paints`;
   }
 
+  async getAllPaints(
+    filters: { name?: string; code?: string; hex?: string },
+    limit: number,
+    page: number = 1,
+  ) {
+    console.log('getAllPaints filters', filters);
+    const firestore = this.firebaseService.returnFirestore();
+    let query = firestore.collectionGroup('paints').orderBy('name');
+
+    if (filters.name) {
+      const nameFilter = filters.name.toLowerCase();
+      query = query
+        .where('name_lower', '>=', nameFilter)
+        .where('name_lower', '<=', nameFilter + '\uf8ff');
+    }
+    if (filters.code) {
+      query = query.where('code', '==', filters.code);
+    }
+    if (filters.hex) {
+      query = query.where('hex', '==', filters.hex);
+    }
+
+    const totalSnapshot = await query.get();
+    const totalPaints = totalSnapshot.size;
+    const totalPages = Math.ceil(totalPaints / limit);
+
+    const currentPage = Math.min(Math.max(page, 1), totalPages);
+
+    // Calcular el índice del primer documento de la página
+    const startIndex = (currentPage - 1) * limit;
+    let startAfterDoc = null;
+
+    if (startIndex > 0) {
+      startAfterDoc = totalSnapshot.docs[startIndex - 1]; // Documento para hacer `startAfter`
+    }
+
+    if (startAfterDoc) {
+      query = query.startAfter(startAfterDoc);
+    }
+
+    const snapshot = await query.limit(limit).get();
+    const paints = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      brandId: doc.ref.parent.parent?.id,
+      ...doc.data(),
+    }));
+
+    return {
+      currentPage,
+      totalPaints,
+      totalPages,
+      limit,
+      paints,
+    };
+  }
+
   async getPaints(
     brandId: string,
     filters: { name?: string; code?: string; hex?: string },
