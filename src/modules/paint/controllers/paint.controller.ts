@@ -7,10 +7,13 @@ import {
   Put,
   Param,
   Query,
+  Body,
 } from '@nestjs/common';
 import { PaintService } from '../providers/paint.service';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { executeError } from '../../../utils/error';
+import { SendCreatePaint } from '../dto/SendCreatePaint.dto';
+import { SendUpdatePaint } from '../dto/SendUpdatePaint.dto';
 
 @Controller('paint')
 export class PaintController {
@@ -60,24 +63,64 @@ export class PaintController {
     );
   }
 
-  @Post('')
-  createPaint() {
-    return { ok: true };
+  @Post('/')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Create Paint' })
+  @ApiResponse({ status: 200, description: 'OK' })
+  @ApiBody({
+    type: SendCreatePaint,
+    description: 'Create paint dto',
+  })
+  createPaint(
+    @Body()
+    requestService: SendCreatePaint,
+  ) {
+    try {
+      return this._paintService.createPaint(requestService);
+    } catch (error) {
+      executeError(error);
+    }
+  }
+
+  @Delete('/:brandId/:paintId')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Delete Paint' })
+  @ApiResponse({ status: 200, description: 'OK' })
+  deletePaint(
+    @Param('brandId') brandId: string,
+    @Param('paintId') paintId: string,
+  ) {
+    try {
+      return this._paintService.deletePaint(brandId, paintId);
+    } catch (error) {
+      executeError(error);
+    }
+  }
+
+  @Put('/:brandId/:paintId')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Delete Paint' })
+  @ApiResponse({ status: 200, description: 'OK' })
+  @ApiBody({
+    type: SendUpdatePaint,
+    description: 'Update paint dto',
+  })
+  updatePaint(
+    @Param('brandId') brandId: string,
+    @Param('paintId') paintId: string,
+    @Body()
+    requestService: SendUpdatePaint,
+  ) {
+    try {
+      return this._paintService.updatePaint(brandId, paintId, requestService);
+    } catch (error) {
+      executeError(error);
+    }
   }
 
   @Post('update-name-lower')
   async updateNameLower() {
     const res = await this._paintService.updateNameLowerForAllPaints();
     return res;
-  }
-
-  @Delete('')
-  deletePaint() {
-    return { ok: true };
-  }
-
-  @Put('')
-  updatePaint() {
-    return { ok: true };
   }
 }

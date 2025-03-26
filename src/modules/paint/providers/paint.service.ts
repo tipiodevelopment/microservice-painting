@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { FirebaseService } from '../../firebase/firebase.service';
+import { ApiResponse } from '../../../utils/interfaces';
 
 @Injectable()
 export class PaintService {
@@ -168,5 +169,107 @@ export class PaintService {
     }
 
     return { message: 'Update Completed.' };
+  }
+
+  async createPaint(data: {
+    brandId: string;
+    b: number;
+    code: string;
+    color: string;
+    g: number;
+    hex: string;
+    name: string;
+    r: number;
+    set: string;
+  }): Promise<ApiResponse> {
+    const response: ApiResponse = {
+      executed: true,
+      message: '',
+      data: null,
+    };
+
+    try {
+      const firestore = this.firebaseService.returnFirestore();
+      const paintRef = firestore.collection(`brands/${data.brandId}/paints`);
+      const currentDate = new Date();
+      const newPaint = {
+        created_at: currentDate,
+        updated_at: currentDate,
+        b: data.b,
+        code: data.code,
+        color: data.color,
+        g: data.g,
+        hex: data.hex,
+        name: data.name,
+        r: data.r,
+        set: data.set,
+        name_lower: data.name.toLowerCase(),
+      };
+
+      const docRef = await paintRef.add(newPaint);
+      response.data = { id: docRef.id, ...newPaint, brandId: data.brandId };
+    } catch (error) {
+      response.message = error.message;
+      response.executed = false;
+    } finally {
+      return response;
+    }
+  }
+
+  async deletePaint(brandId: string, paintId: string): Promise<ApiResponse> {
+    const response: ApiResponse = {
+      executed: true,
+      message: '',
+      data: null,
+    };
+
+    try {
+      const firestore = this.firebaseService.returnFirestore();
+      const paintRef = firestore.doc(`brands/${brandId}/paints/${paintId}`);
+
+      await paintRef.delete();
+
+      response.message = `Paint ${paintId} deleted successfully.`;
+    } catch (error) {
+      response.message = error.message;
+      response.executed = false;
+    } finally {
+      return response;
+    }
+  }
+
+  async updatePaint(
+    brandId: string,
+    paintId: string,
+    data: Partial<{
+      b: number;
+      code: string;
+      color: string;
+      g: number;
+      hex: string;
+      name: string;
+      r: number;
+      set: string;
+    }>,
+  ): Promise<ApiResponse> {
+    const response: ApiResponse = {
+      executed: true,
+      message: '',
+      data: null,
+    };
+    try {
+      const firestore = this.firebaseService.returnFirestore();
+      const paintRef = firestore.doc(`brands/${brandId}/paints/${paintId}`);
+      const paintSnapshot = await paintRef.get();
+      if (!paintSnapshot.exists)
+        throw new Error(`Paint ${paintId} not found in brand ${brandId}.`);
+      await paintRef.update(data);
+      response.message = `Paint ${paintId} updated in brand ${brandId}.`;
+    } catch (error) {
+      response.message = error.message;
+      response.executed = false;
+    } finally {
+      return response;
+    }
   }
 }
