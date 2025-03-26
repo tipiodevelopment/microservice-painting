@@ -24,6 +24,10 @@ export class FirebaseService {
     this.firestore = this.firebaseApp.firestore();
   }
 
+  returnFirestore() {
+    return this.firestore;
+  }
+
   async verifyToken(token: string): Promise<admin.auth.DecodedIdToken> {
     return await this.firebaseApp.auth().verifyIdToken(token);
   }
