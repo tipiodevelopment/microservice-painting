@@ -278,4 +278,93 @@ export class PaintService {
       return response;
     }
   }
+
+  async findClosestPaintsAcrossBrands(
+    brandIds: string[],
+    hex: string,
+    limit = 10,
+    page = 1,
+    minSimilarity?: number, // 👈 opcional
+  ) {
+    const firestore = this.firebaseService.returnFirestore();
+    const targetRGB = this.hexToRgb(hex);
+    if (!targetRGB) throw new Error('Invalid hex color');
+
+    const maxDistance = Math.sqrt(255 ** 2 + 255 ** 2 + 255 ** 2);
+    const allPaints: any[] = [];
+
+    for (const brandId of brandIds) {
+      const brandSnap = await firestore.collection('brands').doc(brandId).get();
+      if (!brandSnap.exists) continue;
+
+      const brandData = brandSnap.data();
+      const paintsSnap = await firestore
+        .collection(`brands/${brandId}/paints`)
+        .get();
+
+      if (paintsSnap.empty) continue;
+
+      for (const doc of paintsSnap.docs) {
+        const paint = doc.data();
+        const distance = this.calculateEuclideanDistance(targetRGB, {
+          r: paint.r,
+          g: paint.g,
+          b: paint.b,
+        });
+        const similarity = +(100 - (distance / maxDistance) * 100).toFixed(2);
+
+        // Solo aplicar el filtro si se recibió `minSimilarity`
+        if (minSimilarity === undefined || similarity >= minSimilarity) {
+          allPaints.push({
+            id: doc.id,
+            similarity,
+            ...paint,
+            brand: {
+              id: brandId,
+              name: brandData.name,
+              logo_url: brandData.logo_url,
+            },
+          });
+        }
+      }
+    }
+
+    allPaints.sort((a, b) => b.similarity - a.similarity);
+
+    const totalPaints = allPaints.length;
+    const totalPages = Math.ceil(totalPaints / limit);
+    const currentPage = Math.max(1, Math.min(page, totalPages));
+    const startIndex = (currentPage - 1) * limit;
+    const paginatedPaints = allPaints.slice(startIndex, startIndex + limit);
+
+    return {
+      currentPage,
+      totalPages,
+      totalPaints,
+      limit,
+      paints: paginatedPaints,
+    };
+  }
+
+  private hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+    const cleanHex = hex.replace('#', '').trim();
+    if (!/^[0-9A-Fa-f]{6}$/.test(cleanHex)) return null;
+
+    const r = parseInt(cleanHex.substring(0, 2), 16);
+    const g = parseInt(cleanHex.substring(2, 4), 16);
+    const b = parseInt(cleanHex.substring(4, 6), 16);
+
+    return { r, g, b };
+  }
+
+  private calculateEuclideanDistance(
+    c1: { r: number; g: number; b: number },
+    c2: { r: number; g: number; b: number },
+  ): number {
+    return Math.sqrt(
+      Math.pow(c1.r - c2.r, 2) +
+        Math.pow(c1.g - c2.g, 2) +
+        Math.pow(c1.b - c2.b, 2),
+    );
+  }
 }

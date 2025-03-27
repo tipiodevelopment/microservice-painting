@@ -3,6 +3,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { ImageModule } from './modules/image/image.module';
 import { BrandModule } from './modules/brand/brand.module';
 import { PaintModule } from './modules/paint/paint.module';
+import { ColorSearchesModule } from './modules/color-searches/color-searches.module';
 
 import { ConfigModule } from '@nestjs/config';
 import { ConfigurationModule } from './config/config.module';
@@ -23,6 +24,7 @@ import { ResponseInterceptor } from './interceptors/response/response.intercepto
     ImageModule,
     BrandModule,
     PaintModule,
+    ColorSearchesModule,
   ],
   providers: [
     {
