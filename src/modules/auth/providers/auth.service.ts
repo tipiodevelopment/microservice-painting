@@ -7,6 +7,7 @@ import {
 } from '../../../utils/enums/auditlog.enum';
 import { SendSetRole } from '../dtos/SendSetRole.dto';
 import { roles } from 'src/utils/enums/roles.enum';
+import { documents } from '../../../utils/enums/documents.enum';
 
 @Injectable()
 export class AuthService {
@@ -48,7 +49,7 @@ export class AuthService {
       };
 
       const savedUser = await this.firebaseService.setOrAddDocument(
-        'users',
+        documents.users,
         userData,
         createdUser.data.uid,
       );
@@ -63,7 +64,10 @@ export class AuthService {
         record_id: createdUser.data.uid,
         table_name: auditTables.USERS,
       };
-      await this.firebaseService.setOrAddDocument('audit_log', auditLog);
+      await this.firebaseService.setOrAddDocument(
+        documents.audit_log,
+        auditLog,
+      );
 
       const customToken = await this.firebaseService.createCustomToken(
         userData.id,
@@ -97,7 +101,7 @@ export class AuthService {
       };
 
       const savedUser = await this.firebaseService.setOrAddDocument(
-        'users',
+        documents.users,
         userData,
         data.uid,
       );
@@ -112,7 +116,10 @@ export class AuthService {
         record_id: data.uid,
         table_name: auditTables.USERS,
       };
-      await this.firebaseService.setOrAddDocument('audit_log', auditLog);
+      await this.firebaseService.setOrAddDocument(
+        documents.audit_log,
+        auditLog,
+      );
 
       response.data = userData;
     } catch (error) {
@@ -155,7 +162,7 @@ export class AuthService {
       user.role = data.role;
 
       const setUser = await this.firebaseService.setOrAddDocument(
-        'users',
+        documents.users,
         user,
         user.id,
       );
@@ -171,7 +178,10 @@ export class AuthService {
         record_id: user.id,
         table_name: auditTables.USERS,
       };
-      await this.firebaseService.setOrAddDocument('audit_log', auditLog);
+      await this.firebaseService.setOrAddDocument(
+        documents.audit_log,
+        auditLog,
+      );
       response.data = user;
     } catch (error) {
       response.message = error.message;

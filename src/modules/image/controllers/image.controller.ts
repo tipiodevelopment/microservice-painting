@@ -1,7 +1,19 @@
-import { Controller, Get, HttpCode, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ImageService } from '../providers/image.service';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { executeError } from '../../../utils/error';
+import { SendUpdateImage } from '../dto/SendUpdateImage.dto';
+import { FirebaseAuthGuard } from 'src/modules/firebase/firebase-auth.guard';
+import { SendCreatePick } from '../dto/SendCreatePick.dto';
 
 @Controller('image')
 export class ImageController {
@@ -19,23 +31,81 @@ export class ImageController {
     }
   }
 
+  @UseGuards(FirebaseAuthGuard)
   @Get('')
-  getImages() {
-    return { ok: true };
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Get images' })
+  @ApiResponse({ status: 200, description: 'OK' })
+  getImages(@Req() req) {
+    try {
+      const currentUser = req.user;
+      return this._imageService.getImages(currentUser);
+    } catch (error) {
+      executeError(error);
+    }
   }
 
+  @UseGuards(FirebaseAuthGuard)
   @Post('/upload')
-  upload() {
-    return { ok: true };
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Upload image info' })
+  @ApiResponse({ status: 200, description: 'OK' })
+  @ApiBody({
+    type: SendUpdateImage,
+    description: 'Upload image dto',
+  })
+  upload(
+    @Req() req,
+    @Body()
+    requestService: SendUpdateImage,
+  ) {
+    try {
+      const currentUser = req.user;
+      console.log('currentUser', currentUser);
+      return this._imageService.upload(currentUser, { ...requestService });
+    } catch (error) {
+      executeError(error);
+    }
   }
 
-  @Get('/:id_image/picks')
-  getPicks() {
-    return { ok: true };
+  @UseGuards(FirebaseAuthGuard)
+  @Get('/:image_id/picks')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Get image picks' })
+  @ApiResponse({ status: 200, description: 'OK' })
+  getPicks(@Req() req, @Param('image_id') image_id: string) {
+    try {
+      const currentUser = req.user;
+      return this._imageService.getPicks(currentUser, image_id);
+    } catch (error) {
+      executeError(error);
+    }
   }
 
-  @Post('/:id_image/picks')
-  createPick() {
-    return { ok: true };
+  @UseGuards(FirebaseAuthGuard)
+  @Post('/:image_id/picks')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Create picks' })
+  @ApiResponse({ status: 200, description: 'OK' })
+  @ApiBody({
+    type: SendCreatePick,
+    description: 'Create picks dto',
+  })
+  createPick(
+    @Req() req,
+    @Param('image_id') image_id: string,
+    @Body()
+    requestService: SendCreatePick,
+  ) {
+    try {
+      const currentUser = req.user;
+      return this._imageService.createPick(
+        currentUser,
+        image_id,
+        requestService,
+      );
+    } catch (error) {
+      executeError(error);
+    }
   }
 }
