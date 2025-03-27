@@ -28,7 +28,10 @@ export class PaintService {
       query = query
         .where('name_lower', '>=', nameFilter)
         .where('name_lower', '<=', nameFilter + '\uf8ff');
+    } else {
+      query = query.where('name_lower', '>', '').orderBy('name_lower');
     }
+
     if (filters.code) {
       query = query.where('code', '==', filters.code);
     }
@@ -42,12 +45,11 @@ export class PaintService {
 
     const currentPage = Math.min(Math.max(page, 1), totalPages);
 
-    // Calcular el índice del primer documento de la página
     const startIndex = (currentPage - 1) * limit;
     let startAfterDoc = null;
 
     if (startIndex > 0) {
-      startAfterDoc = totalSnapshot.docs[startIndex - 1]; // Documento para hacer `startAfter`
+      startAfterDoc = totalSnapshot.docs[startIndex - 1];
     }
 
     if (startAfterDoc) {
@@ -116,6 +118,7 @@ export class PaintService {
     const snapshot = await query.limit(limit).get();
     const paints = snapshot.docs.map((doc) => ({
       id: doc.id,
+      brandId: doc.ref?.parent?.parent?.id,
       ...doc.data(),
     }));
 
@@ -250,6 +253,7 @@ export class PaintService {
       name: string;
       r: number;
       set: string;
+      name_lower: string;
     }>,
   ): Promise<ApiResponse> {
     const response: ApiResponse = {
@@ -263,6 +267,8 @@ export class PaintService {
       const paintSnapshot = await paintRef.get();
       if (!paintSnapshot.exists)
         throw new Error(`Paint ${paintId} not found in brand ${brandId}.`);
+
+      if (data?.name) data.name_lower = data.name.toLocaleLowerCase();
       await paintRef.update(data);
       response.message = `Paint ${paintId} updated in brand ${brandId}.`;
     } catch (error) {
