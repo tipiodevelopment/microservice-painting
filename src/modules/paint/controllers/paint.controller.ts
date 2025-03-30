@@ -60,7 +60,6 @@ export class PaintController {
     @Query('brandIds') brandIdsRaw: string,
     @Query('limit') limit = 10,
     @Query('page') page = 1,
-    @Query('minSimilarity') minSimilarity?: string, // 👈 puede no llegar
   ) {
     if (!hex) throw new Error('Hex color is required');
     if (!brandIdsRaw) throw new Error('brandIds are required');
@@ -70,16 +69,11 @@ export class PaintController {
       .map((id) => id.trim())
       .filter(Boolean);
 
-    // Convertir a número solo si está presente
-    const minSimilarityNumber =
-      minSimilarity !== undefined ? Number(minSimilarity) : undefined;
-
     return this._paintService.findClosestPaintsAcrossBrands(
       brandIds,
       hex,
       Number(limit),
       Number(page),
-      minSimilarityNumber,
     );
   }
 

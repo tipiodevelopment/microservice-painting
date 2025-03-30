@@ -284,7 +284,6 @@ export class PaintService {
     hex: string,
     limit = 10,
     page = 1,
-    minSimilarity?: number, // 👈 opcional
   ) {
     const firestore = this.firebaseService.returnFirestore();
     const targetRGB = this.hexToRgb(hex);
@@ -293,18 +292,20 @@ export class PaintService {
     const maxDistance = Math.sqrt(255 ** 2 + 255 ** 2 + 255 ** 2);
     const allPaints: any[] = [];
 
-    for (const brandId of brandIds) {
+    // Leer marcas en paralelo
+    const brandPromises = brandIds.map(async (brandId) => {
       const brandSnap = await firestore.collection('brands').doc(brandId).get();
-      if (!brandSnap.exists) continue;
+      if (!brandSnap.exists) return null;
 
       const brandData = brandSnap.data();
+
       const paintsSnap = await firestore
         .collection(`brands/${brandId}/paints`)
         .get();
 
-      if (paintsSnap.empty) continue;
+      if (paintsSnap.empty) return null;
 
-      for (const doc of paintsSnap.docs) {
+      return paintsSnap.docs.map((doc) => {
         const paint = doc.data();
         const distance = this.calculateEuclideanDistance(targetRGB, {
           r: paint.r,
@@ -313,24 +314,31 @@ export class PaintService {
         });
         const similarity = +(100 - (distance / maxDistance) * 100).toFixed(2);
 
-        // Solo aplicar el filtro si se recibió `minSimilarity`
-        if (minSimilarity === undefined || similarity >= minSimilarity) {
-          allPaints.push({
-            id: doc.id,
-            similarity,
-            ...paint,
-            brand: {
-              id: brandId,
-              name: brandData.name,
-              logo_url: brandData.logo_url,
-            },
-          });
-        }
-      }
-    }
+        return {
+          id: doc.id,
+          similarity,
+          ...paint,
+          brand: {
+            id: brandId,
+            name: brandData.name,
+            logo_url: brandData.logo_url,
+          },
+        };
+      });
+    });
 
+    // Esperar todas las marcas y pintar
+    const results = await Promise.all(brandPromises);
+
+    // Aplanar y filtrar nulos
+    results
+      .filter(Boolean)
+      .forEach((paintArray) => allPaints.push(...paintArray));
+
+    // Ordenar por similitud global
     allPaints.sort((a, b) => b.similarity - a.similarity);
 
+    // Paginar
     const totalPaints = allPaints.length;
     const totalPages = Math.ceil(totalPaints / limit);
     const currentPage = Math.max(1, Math.min(page, totalPages));
