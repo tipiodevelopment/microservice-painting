@@ -5,6 +5,7 @@ import { documents } from '../../../utils/enums/documents.enum';
 import { Storage } from '@google-cloud/storage';
 import { ConfigService } from '../../../config/providers/config.service';
 import { Configuration } from '../../../config/utils/config.keys';
+import * as mime from 'mime-types';
 
 @Injectable()
 export class ImageService {
@@ -25,9 +26,11 @@ export class ImageService {
     const fileName = `${userId}/${Date.now()}-${file.originalname}`;
     const bucket = storage.bucket('paints-imgs');
     const blob = bucket.file(fileName);
+    const contentType =
+      mime.lookup(file.originalname) || 'application/octet-stream';
     const stream = blob.createWriteStream({
       resumable: false,
-      metadata: { contentType: file.mimetype },
+      metadata: { contentType },
     });
 
     return new Promise((resolve, reject) => {
