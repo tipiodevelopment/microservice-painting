@@ -6,7 +6,9 @@ import {
   Param,
   Post,
   Req,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ImageService } from '../providers/image.service';
 import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
@@ -14,6 +16,9 @@ import { executeError } from '../../../utils/error';
 import { SendUpdateImage } from '../dto/SendUpdateImage.dto';
 import { FirebaseAuthGuard } from 'src/modules/firebase/firebase-auth.guard';
 import { SendCreatePick } from '../dto/SendCreatePick.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import * as multer from 'multer';
+const storage = multer.memoryStorage();
 
 @Controller('image')
 export class ImageController {
@@ -40,6 +45,27 @@ export class ImageController {
     try {
       const currentUser = req.user;
       return this._imageService.getImages(currentUser);
+    } catch (error) {
+      executeError(error);
+    }
+  }
+
+  @UseGuards(FirebaseAuthGuard)
+  @UseInterceptors(FileInterceptor('file', { storage }))
+  @Post('/upload-file')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Upload file image' })
+  @ApiResponse({ status: 200, description: 'OK' })
+  async uploadFile(
+    @Req() req,
+    @UploadedFile() file: Express.Multer.File,
+  ): Promise<{ url: string }> {
+    try {
+      const currentUser = req.user;
+      const url = await this._imageService.uploadFile(currentUser.uid, file);
+      return {
+        url,
+      };
     } catch (error) {
       executeError(error);
     }

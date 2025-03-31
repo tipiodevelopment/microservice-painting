@@ -3,4 +3,5 @@ export enum Configuration {
   BASE_PATH = 'BASE_PATH',
   APP_HOST = 'APP_HOST',
   FIREBASE_JSON = 'FIREBASE_JSON',
+  GCP_JSON = 'GCP_JSON',
 }
