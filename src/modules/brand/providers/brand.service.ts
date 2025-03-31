@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { FirebaseService } from '../../firebase/firebase.service';
+import { documents } from 'src/utils/enums/documents.enum';
 
 @Injectable()
 export class BrandService {
@@ -10,7 +11,9 @@ export class BrandService {
   }
 
   async getBrands() {
-    const responseBrands = await this.firebaseService.getCollection('brands');
+    const responseBrands = await this.firebaseService.getCollection(
+      documents.brands,
+    );
     return responseBrands.data;
   }
 }

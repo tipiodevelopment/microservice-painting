@@ -1,7 +1,16 @@
-import { Body, Controller, Get, HttpCode, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ColorSearchesService } from '../providers/color-searches.service';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { executeError } from '../../../utils/error';
+import { FirebaseAuthGuard } from '../../../modules/firebase/firebase-auth.guard';
 
 @Controller('color-searches')
 export class ColorSearchesController {
@@ -19,17 +28,19 @@ export class ColorSearchesController {
     }
   }
 
-  @Post()
+  @UseGuards(FirebaseAuthGuard)
+  @Post('/')
   async saveColorSearch(
+    @Req() req,
     @Body()
     body: {
-      userId: string;
       paints: { paint_id: string; brand_id: string }[];
     },
   ) {
     try {
+      const currentUser = req.user;
       return this._colorSearchesService.saveColorSearch(
-        body.userId,
+        currentUser.uid,
         body.paints,
       );
     } catch (error) {
@@ -37,10 +48,12 @@ export class ColorSearchesController {
     }
   }
 
-  @Get(':userId')
-  async getUserColorSearches(@Param('userId') userId: string) {
+  @UseGuards(FirebaseAuthGuard)
+  @Get('/')
+  async getUserColorSearches(@Req() req) {
     try {
-      return this._colorSearchesService.getUserColorSearches(userId);
+      const currentUser = req.user;
+      return this._colorSearchesService.getUserColorSearches(currentUser.uid);
     } catch (error) {
       executeError(error);
     }

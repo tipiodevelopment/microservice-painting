@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { FirebaseService } from '../../firebase/firebase.service';
+import { documents } from 'src/utils/enums/documents.enum';
 
 @Injectable()
 export class ColorSearchesService {
@@ -14,7 +15,7 @@ export class ColorSearchesService {
     paints: { paint_id: string; brand_id: string }[],
   ) {
     const firestore = this.firebaseService.returnFirestore();
-    const searchRef = firestore.collection('color_searches').doc();
+    const searchRef = firestore.collection(documents.color_searches).doc();
 
     await searchRef.set({
       user_id: userId,
@@ -28,7 +29,7 @@ export class ColorSearchesService {
   async getUserColorSearches(userId: string) {
     const firestore = this.firebaseService.returnFirestore();
     const querySnap = await firestore
-      .collection('color_searches')
+      .collection(documents.color_searches)
       .where('user_id', '==', userId)
       .get();
 
