@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   HttpCode,
+  Param,
   Post,
   Req,
   UseGuards,
@@ -12,6 +13,7 @@ import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { executeError } from '../../../utils/error';
 import { FirebaseAuthGuard } from 'src/modules/firebase/firebase-auth.guard';
 import { SendSavePalettes } from '../dto/SendSavePalettes.dto';
+import { SendSavePalettesPaints } from '../dto/SendSavePalettesPaints.dto';
 
 @Controller('palettes')
 export class PalettesController {
@@ -38,14 +40,35 @@ export class PalettesController {
     type: SendSavePalettes,
     description: 'Save palettes dto',
   })
-  async save(
+  async savePalette(
     @Req() req,
     @Body()
     body: SendSavePalettes,
   ) {
     try {
       const currentUser = req.user;
-      return this._palettesService.save(currentUser.uid, body);
+      return this._palettesService.savePalette(currentUser.uid, body);
+    } catch (error) {
+      executeError(error);
+    }
+  }
+
+  @UseGuards(FirebaseAuthGuard)
+  @Post('/:palette_id/paints')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Save palette paints' })
+  @ApiResponse({ status: 200, description: 'OK' })
+  @ApiBody({
+    type: SendSavePalettes,
+    description: 'Save palette paints dto',
+  })
+  async savePalettePaints(
+    @Param('palette_id') palette_id: string,
+    @Body()
+    body: SendSavePalettesPaints[],
+  ) {
+    try {
+      return this._palettesService.savePalettePaints(palette_id, body);
     } catch (error) {
       executeError(error);
     }

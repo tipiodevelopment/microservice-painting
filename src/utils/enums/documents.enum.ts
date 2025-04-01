@@ -6,4 +6,5 @@ export enum documents {
   image_color_picks = 'image_color_picks',
   color_searches = 'color_searches',
   palettes = 'palettes',
+  palettes_paints = 'palettes_paints',
 }
