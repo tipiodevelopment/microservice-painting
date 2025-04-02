@@ -5,6 +5,7 @@ import {
   HttpCode,
   Param,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -26,6 +27,28 @@ export class PalettesController {
   async HealthCheck() {
     try {
       return this._palettesService.healthCheck();
+    } catch (error) {
+      executeError(error);
+    }
+  }
+
+  @UseGuards(FirebaseAuthGuard)
+  @Get('/')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Save palettes' })
+  @ApiResponse({ status: 200, description: 'OK' })
+  @ApiBody({
+    type: SendSavePalettes,
+    description: 'Save palettes dto',
+  })
+  async getPalettes(
+    @Req() req,
+    @Query('limit') limit = 10,
+    @Query('page') page = 1,
+  ) {
+    try {
+      const currentUser = req.user;
+      return this._palettesService.getPalettes(currentUser.uid, limit, page);
     } catch (error) {
       executeError(error);
     }
@@ -59,7 +82,7 @@ export class PalettesController {
   @ApiOperation({ summary: 'Save palette paints' })
   @ApiResponse({ status: 200, description: 'OK' })
   @ApiBody({
-    type: SendSavePalettes,
+    type: SendSavePalettesPaints,
     description: 'Save palette paints dto',
   })
   async savePalettePaints(

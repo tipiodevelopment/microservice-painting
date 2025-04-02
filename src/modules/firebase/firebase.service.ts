@@ -183,6 +183,40 @@ export class FirebaseService {
     }
   }
 
+  async getDocumentsByProperty(
+    collectionName: string,
+    fieldName: string,
+    value: string,
+  ): Promise<ApiResponse> {
+    const response: ApiResponse = {
+      executed: true,
+      message: '',
+      data: null,
+    };
+
+    try {
+      const querySnapshot = await this.firestore
+        .collection(collectionName)
+        .where(fieldName, '==', value)
+        .orderBy(fieldName)
+        .get();
+
+      if (!querySnapshot.empty) {
+        response.data = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+      } else {
+        throw new Error('No User found');
+      }
+    } catch (error) {
+      response.message = error.message;
+      response.executed = false;
+    } finally {
+      return response;
+    }
+  }
+
   async setOrAddDocument(
     collectionName: string,
     data: any,

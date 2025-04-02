@@ -6,6 +6,11 @@ export class SendSavePalettesPaints {
   @IsString()
   paint_id: string;
 
+  @IsDefined()
+  @IsNotEmpty()
+  @IsString()
+  brand_id: string;
+
   @IsOptional()
   @IsString()
   image_color_picks_id?: string;

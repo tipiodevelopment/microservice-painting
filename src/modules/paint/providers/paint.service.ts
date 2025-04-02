@@ -103,7 +103,6 @@ export class PaintService {
 
     const currentPage = Math.min(Math.max(page, 1), totalPages);
 
-    // Calcular el índice del primer documento de la página
     const startIndex = (currentPage - 1) * limit;
     let startAfterDoc = null;
 
