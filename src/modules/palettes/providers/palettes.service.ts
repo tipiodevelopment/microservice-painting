@@ -49,10 +49,14 @@ export class PalettesService {
       }
 
       const snapshot = await query.limit(limit).get();
-      const palettes = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const palettes = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          name: data.name,
+          created_at: new Date(data.created_at._seconds * 1000),
+        };
+      });
 
       const getImage = async (palette_paints) => {
         const image = await this.firebaseService.getDocumentById(
@@ -60,23 +64,32 @@ export class PalettesService {
           palette_paints.image_color_picks_id,
         );
 
-        palette_paints.image_color_picks = image.data;
+        if (image?.data) {
+          palette_paints.image_color_picks = {
+            ...image.data,
+            created_at: new Date(image?.data.created_at._seconds * 1000),
+          };
+        } else palette_paints.image_color_picks = null;
       };
 
-      // const getPaint = async (palette_paints) => {
-      //   console.log('palette_paints.paint_id', palette_paints.paint_id);
-      //   const paintQuery = await firestore
-      //     .collectionGroup('paints')
-      //     .where('code', '==', palette_paints.paint_id)
-      //     .limit(1)
-      //     .get()
-      //     .catch((error) => console.error(error));
-      //   // let paint = null;
-      //   // if (!paintQuery.empty) {
-      //   //   paint = paintQuery.docs[0].data();
-      //   // }
-      //   // palette_paints.paint = paint;
-      // };
+      const getPaint = async (palette_paints) => {
+        let paint = null;
+        if (palette_paints?.brand_id) {
+          const paintDoc = await firestore
+            .collection(`brands/${palette_paints.brand_id}/paints`)
+            .doc(palette_paints.paint_id)
+            .get();
+          if (paintDoc.exists) {
+            const _data = paintDoc.data();
+            paint = {
+              ..._data,
+              created_at: new Date(_data?.created_at._seconds * 1000),
+              updated_at: new Date(_data?.updated_at._seconds * 1000),
+            };
+          }
+        }
+        palette_paints.paint = paint;
+      };
 
       const getPalettePaints = async (palette) => {
         const palettes_paints =
@@ -85,11 +98,33 @@ export class PalettesService {
             'palette_id',
             palette.id,
           );
-        palette.palettes_paints =
-          palettes_paints?.data != null ? palettes_paints.data : [];
+
+        if (palettes_paints?.data?.length > 0) {
+          palette.palettes_paints = palettes_paints.data.map((pp) => {
+            return {
+              ...pp,
+              created_at: new Date(pp?.created_at._seconds * 1000),
+              added_at: new Date(pp?.added_at._seconds * 1000),
+              updated_at: new Date(pp?.updated_at._seconds * 1000),
+            };
+          });
+        } else palette.palettes_paints = [];
 
         await Promise.all(palette.palettes_paints.map(getImage));
-        // await Promise.all(palette.palettes_paints.map(getPaint));
+        await Promise.all(palette.palettes_paints.map(getPaint));
+
+        let image = null;
+        if (palette.palettes_paints.length > 0) {
+          if (
+            palette.palettes_paints.filter((pp) => pp.image_color_picks != null)
+              .length > 0
+          ) {
+            image = palette.palettes_paints.filter(
+              (pp) => pp.image_color_picks != null,
+            )[0].image_color_picks.image_path;
+          }
+        }
+        palette.image = image;
       };
 
       await Promise.all(palettes.map(getPalettePaints));
