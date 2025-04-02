@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   Param,
+  ParseIntPipe,
   Post,
   Query,
   Req,
@@ -43,8 +44,8 @@ export class PalettesController {
   })
   async getPalettes(
     @Req() req,
-    @Query('limit') limit = 10,
-    @Query('page') page = 1,
+    @Query('limit', ParseIntPipe) limit = 10,
+    @Query('page', ParseIntPipe) page = 1,
   ) {
     try {
       const currentUser = req.user;
