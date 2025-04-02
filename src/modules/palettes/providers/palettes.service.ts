@@ -4,6 +4,7 @@ import { SendSavePalettes } from '../dto/SendSavePalettes.dto';
 import { ApiResponse } from '../../../utils/interfaces';
 import { documents } from '../../../utils/enums/documents.enum';
 import { SendSavePalettesPaints } from '../dto/SendSavePalettesPaints.dto';
+import * as moment from 'moment';
 
 @Injectable()
 export class PalettesService {
@@ -125,6 +126,8 @@ export class PalettesService {
           }
         }
         palette.image = image;
+        palette.total_paints = palette.palettes_paints.length;
+        palette.created_at_text = moment(palette.created_at).fromNow();
       };
 
       await Promise.all(palettes.map(getPalettePaints));
