@@ -5,6 +5,7 @@ import { BrandModule } from './modules/brand/brand.module';
 import { PaintModule } from './modules/paint/paint.module';
 import { ColorSearchesModule } from './modules/color-searches/color-searches.module';
 import { PalettesModule } from './modules/palettes/palettes.module';
+import { WhiteListModule } from './modules/white-list/white-list.module';
 
 import { ConfigModule } from '@nestjs/config';
 import { ConfigurationModule } from './config/config.module';
@@ -27,6 +28,7 @@ import { ResponseInterceptor } from './interceptors/response/response.intercepto
     PaintModule,
     ColorSearchesModule,
     PalettesModule,
+    WhiteListModule,
   ],
   providers: [
     {

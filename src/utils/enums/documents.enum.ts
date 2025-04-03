@@ -7,4 +7,5 @@ export enum documents {
   color_searches = 'color_searches',
   palettes = 'palettes',
   palettes_paints = 'palettes_paints',
+  whitelist = 'whitelist',
 }
