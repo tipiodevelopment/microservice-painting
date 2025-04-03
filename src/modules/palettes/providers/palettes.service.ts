@@ -229,4 +229,45 @@ export class PalettesService {
       return response;
     }
   }
+
+  async deletePalette(palette_id: string): Promise<ApiResponse> {
+    const response: ApiResponse = {
+      executed: true,
+      message: '',
+      data: null,
+    };
+
+    try {
+      const paletteResponse = await this.firebaseService.getDocumentById(
+        documents.palettes,
+        palette_id,
+      );
+      if (!paletteResponse.executed || paletteResponse.data == null)
+        throw new Error(`Palette not found.`);
+
+      const palettesPaintsResponse =
+        await this.firebaseService.getDocumentsByProperty(
+          documents.palettes_paints,
+          'palette_id',
+          palette_id,
+        );
+
+      if (palettesPaintsResponse.data.length > 0) {
+        // Eliminar PALETTE PAINTS
+        //  image_color_picks_id
+        // Eliminar USER COLOR IMAGES
+        // Eliminar IMAGE COLOR PICKS
+      }
+
+      {
+        //Eliminar PALETTES
+      }
+      response.message = `Palettes and their dependencies removed`;
+    } catch (error) {
+      response.message = error.message;
+      response.executed = false;
+    } finally {
+      return response;
+    }
+  }
 }

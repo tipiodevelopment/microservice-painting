@@ -121,7 +121,7 @@ export class ImageController {
     @Req() req,
     @Param('image_id') image_id: string,
     @Body()
-    requestService: SendCreatePick,
+    requestService: SendCreatePick[],
   ) {
     try {
       const currentUser = req.user;

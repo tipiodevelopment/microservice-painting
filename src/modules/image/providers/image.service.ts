@@ -159,7 +159,7 @@ export class ImageService {
       r: number;
       x_coord: number;
       y_coord: number;
-    },
+    }[],
   ): Promise<ApiResponse> {
     const response: ApiResponse = {
       executed: true,
@@ -168,21 +168,27 @@ export class ImageService {
     };
 
     try {
+      const responseData = [];
       const currentDate = new Date();
-      const setOrAddDocument = await this.firebaseService.setOrAddDocument(
-        documents.image_color_picks,
-        {
+      const process = async (_data) => {
+        const setOrAddDocument = await this.firebaseService.setOrAddDocument(
+          documents.image_color_picks,
+          {
+            image_id,
+            ..._data,
+            created_at: currentDate,
+          },
+        );
+        responseData.push({
+          id: setOrAddDocument.data.id,
           image_id,
           ...data,
           created_at: currentDate,
-        },
-      );
-      response.data = {
-        id: setOrAddDocument.data.id,
-        image_id,
-        ...data,
-        created_at: currentDate,
+        });
       };
+      await Promise.all(data.map(process));
+
+      response.data = responseData;
     } catch (error) {
       response.message = error.message;
       response.executed = false;

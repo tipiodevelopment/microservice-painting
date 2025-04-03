@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Param,
@@ -93,6 +94,19 @@ export class PalettesController {
   ) {
     try {
       return this._palettesService.savePalettePaints(palette_id, body);
+    } catch (error) {
+      executeError(error);
+    }
+  }
+
+  @UseGuards(FirebaseAuthGuard)
+  @Delete('/:palette_id')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Delete palette paints' })
+  @ApiResponse({ status: 200, description: 'OK' })
+  async deletePalette(@Param('palette_id') palette_id: string) {
+    try {
+      return this._palettesService.deletePalette(palette_id);
     } catch (error) {
       executeError(error);
     }
