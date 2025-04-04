@@ -10,6 +10,76 @@ export class WhiteListService {
     return { executed: true, message: 'OK', microservice: 'Painting' };
   }
 
+  async seedWhitelist(userId: string) {
+    const firestore = this.firebaseService.returnFirestore();
+    const now = new Date();
+
+    const paints = [
+      {
+        brand_id: 'AK',
+        paint_id: 'AK004',
+        type: 'favorite',
+        priority: 1,
+        deleted: false,
+      },
+      {
+        brand_id: 'AK',
+        paint_id: 'AK005',
+        type: 'wishlist',
+        priority: 2,
+        deleted: false,
+      },
+      {
+        brand_id: 'AppleBarrel',
+        paint_id: '20210',
+        type: 'favorite',
+        priority: null,
+        deleted: false,
+      },
+      {
+        brand_id: 'AppleBarrel',
+        paint_id: '20211',
+        type: 'wishlist',
+        priority: null,
+        deleted: false,
+      },
+      {
+        brand_id: 'Arteza',
+        paint_id: 'A001',
+        type: 'favorite',
+        priority: null,
+        deleted: false,
+      },
+      {
+        brand_id: 'Arteza',
+        paint_id: 'A002',
+        type: 'wishlist',
+        priority: null,
+        deleted: false,
+      },
+    ];
+
+    const inserted = [];
+
+    for (const paint of paints) {
+      const ref = firestore.collection(documents.wishlist).doc();
+
+      await ref.set({
+        user_id: userId,
+        paint_id: paint.paint_id,
+        brand_id: paint.brand_id,
+        type: paint.type,
+        priority: paint.priority,
+        created_at: now,
+        updated_at: now,
+      });
+
+      inserted.push({ id: ref.id, ...paint });
+    }
+
+    return { inserted: inserted.length, user_id: userId, items: inserted };
+  }
+
   async saveToWhiteList(
     userId: string,
     body: {
@@ -20,7 +90,7 @@ export class WhiteListService {
     },
   ) {
     const firestore = this.firebaseService.returnFirestore();
-    const ref = firestore.collection(documents.whitelist).doc();
+    const ref = firestore.collection(documents.wishlist).doc();
 
     await ref.set({
       user_id: userId,
@@ -30,6 +100,7 @@ export class WhiteListService {
       priority: body.priority,
       created_at: new Date(),
       updated_at: new Date(),
+      deleted: false,
     });
 
     return { success: true, id: ref.id };
@@ -39,8 +110,9 @@ export class WhiteListService {
     const firestore = this.firebaseService.returnFirestore();
 
     const querySnap = await firestore
-      .collection('whitelist')
+      .collection(documents.wishlist)
       .where('user_id', '==', userId)
+      .where('deleted', '==', false)
       .orderBy('priority', 'desc')
       .get();
 
@@ -70,7 +142,10 @@ export class WhiteListService {
           .doc(`palettes/${paletteData.palette_id}`)
           .get();
 
-        if (paletteSnap.exists) {
+        if (
+          paletteSnap.exists &&
+          paletteSnap.data()?.userId === userId // ✅ solo paletas del usuario
+        ) {
           paletteNames.push(paletteSnap.data().name);
         }
       }
@@ -90,17 +165,22 @@ export class WhiteListService {
 
     return { userId, whitelist: results };
   }
+
   async deleteItem(id: string, userId: string) {
     const firestore = this.firebaseService.returnFirestore();
-    const ref = firestore.collection(documents.whitelist).doc(id);
+    const ref = firestore.collection(documents.wishlist).doc(id);
     const snap = await ref.get();
 
     if (!snap.exists || snap.data().user_id !== userId) {
       throw new Error('Not found or unauthorized');
     }
 
-    await ref.delete();
-    return { deleted: true };
+    await ref.update({
+      deleted: true,
+      updated_at: new Date(),
+    });
+
+    return { deleted: true, soft: true };
   }
 
   async updateItem(
@@ -109,7 +189,7 @@ export class WhiteListService {
     updates: { type?: string; priority?: number },
   ) {
     const firestore = this.firebaseService.returnFirestore();
-    const ref = firestore.collection(documents.whitelist).doc(id);
+    const ref = firestore.collection(documents.wishlist).doc(id);
     const snap = await ref.get();
 
     if (!snap.exists || snap.data().user_id !== userId) {
