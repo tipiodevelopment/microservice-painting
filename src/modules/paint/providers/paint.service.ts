@@ -76,6 +76,8 @@ export class PaintService {
         brand,
         brandId,
         ..._paint,
+        created_at: new Date(_paint?.created_at._seconds * 1000),
+        updated_at: new Date(_paint?.updated_at._seconds * 1000),
         category: !_paint?.category ? '' : _paint.category,
         isMetallic: !_paint?.isMetallic ? false : _paint.isMetallic,
         isTransparent: !_paint?.isTransparent ? false : _paint.isTransparent,
