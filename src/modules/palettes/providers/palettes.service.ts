@@ -30,7 +30,8 @@ export class PalettesService {
         .collection(documents.palettes)
         .orderBy('name')
         .where('userId', '==', userId)
-        .orderBy('userId');
+        .orderBy('userId')
+        .orderBy('created_at', 'desc');
 
       const totalSnapshot = await query.get();
       const totalPalettes = totalSnapshot.size;
@@ -244,6 +245,13 @@ export class PalettesService {
       message: '',
       data: null,
     };
+    /*
+      Flow cascade delete:  
+        Delete user_color_images (images)
+        Delete image_color_picks
+        Delete palettes_paints
+        Delete palettes
+     */
 
     try {
       const paletteResponse = await this.firebaseService.getDocumentById(
@@ -259,18 +267,80 @@ export class PalettesService {
           'palette_id',
           palette_id,
         );
+      let imageColorPicksResponse = null;
+      let user_color_images_ids = null;
 
       if (palettesPaintsResponse.data.length > 0) {
-        // Eliminar PALETTE PAINTS
-        //  image_color_picks_id
-        // Eliminar USER COLOR IMAGES
-        // Eliminar IMAGE COLOR PICKS
+        const image_color_picks_ids = [
+          ...new Set(
+            palettesPaintsResponse.data.map((pp) => pp?.image_color_picks_id),
+          ),
+        ];
+        imageColorPicksResponse = await this.firebaseService.getDocumentsByIds(
+          documents.image_color_picks,
+          image_color_picks_ids,
+        );
+
+        if (imageColorPicksResponse.data.length > 0) {
+          const image_color_picks = imageColorPicksResponse.data;
+          // DELETE IMAGE
+          {
+            user_color_images_ids = [
+              ...new Set(image_color_picks.map((icp) => icp?.image_id)),
+            ];
+            if (user_color_images_ids?.length > 0) {
+              const deleteUserColorImages = async (id) => {
+                await this.firebaseService.deleteDocument(
+                  documents.user_color_images,
+                  id,
+                );
+              };
+              await Promise.all(
+                user_color_images_ids.map(deleteUserColorImages),
+              );
+            }
+          }
+          // DELETE IMAGE
+          // DELETE IMAGE COLOR PICKS
+          {
+            const deleteImageColorPicks = async (icp) => {
+              await this.firebaseService.deleteDocument(
+                documents.image_color_picks,
+                icp.id,
+              );
+            };
+            await Promise.all(image_color_picks.map(deleteImageColorPicks));
+          }
+          // DELETE IMAGE COLOR PICKS
+        }
+        // DELETE PALETTE PAINTS
+        {
+          const deletePalettePaints = async (pp) => {
+            await this.firebaseService.deleteDocument(
+              documents.palettes_paints,
+              pp.id,
+            );
+          };
+          await Promise.all(
+            palettesPaintsResponse.data.map(deletePalettePaints),
+          );
+        }
+        // DELETE PALETTE PAINTS
       }
 
-      {
-        //Eliminar PALETTES
-      }
-      response.message = `Palettes and their dependencies removed`;
+      // DELETE PALETTE
+      await this.firebaseService.deleteDocument(documents.palettes, palette_id);
+      console.log('Delete success');
+      response.data = {
+        deletedPalete: {
+          palette: paletteResponse.data,
+          palettePaints: palettesPaintsResponse.data,
+          imageColorPicks: imageColorPicksResponse?.data
+            ? imageColorPicksResponse?.data
+            : null,
+          user_color_images_ids,
+        },
+      };
     } catch (error) {
       response.message = error.message;
       response.executed = false;
