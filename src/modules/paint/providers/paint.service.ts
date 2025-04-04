@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { FirebaseService } from '../../firebase/firebase.service';
 import { ApiResponse } from '../../../utils/interfaces';
+import { documents } from '../../../utils/enums/documents.enum';
 
 @Injectable()
 export class PaintService {
@@ -19,6 +20,10 @@ export class PaintService {
     limit: number,
     page: number = 1,
   ) {
+    const responseBrands = await this.firebaseService.getCollection(
+      documents.brands,
+    );
+    const brands = responseBrands.data;
     console.log('getAllPaints filters', filters);
     const firestore = this.firebaseService.returnFirestore();
     let query;
@@ -62,11 +67,16 @@ export class PaintService {
     }
 
     const snapshot = await query.limit(limit).get();
-    const paints = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      brandId: doc.ref.parent.parent?.id,
-      ...doc.data(),
-    }));
+    const paints = snapshot.docs.map((doc) => {
+      const brandId = doc.ref.parent.parent?.id;
+      const brand = brands.find((b) => b.id == brandId)?.name;
+      return {
+        id: doc.id,
+        brand,
+        brandId,
+        ...doc.data(),
+      };
+    });
 
     return {
       currentPage,
