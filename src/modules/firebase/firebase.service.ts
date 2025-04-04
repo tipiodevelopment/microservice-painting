@@ -152,6 +152,38 @@ export class FirebaseService {
     }
   }
 
+  async getDocumentsByIds(
+    collectionName: string,
+    ids: any[],
+  ): Promise<ApiResponse> {
+    const response: ApiResponse = {
+      executed: true,
+      message: '',
+      data: null,
+    };
+
+    try {
+      const querySnapshot = await this.firestore
+        .collection(collectionName)
+        .where(admin.firestore.FieldPath.documentId(), 'in', ids)
+        .get();
+
+      if (!querySnapshot.empty) {
+        response.data = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+      } else {
+        response.data = [];
+      }
+    } catch (error) {
+      response.message = error.message;
+      response.executed = false;
+    } finally {
+      return response;
+    }
+  }
+
   async getDocumentByProperty(
     collectionName: string,
     fieldName: string,
