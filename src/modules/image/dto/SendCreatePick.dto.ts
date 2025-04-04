@@ -8,6 +8,10 @@ import {
 
 export class SendCreatePick {
   @IsDefined()
+  @IsNumber()
+  index: number;
+
+  @IsDefined()
   @IsNotEmpty()
   @IsString()
   hex_color: string;

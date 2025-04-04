@@ -60,15 +60,23 @@ export class PalettesService {
       });
 
       const getImage = async (palette_paints) => {
-        const image = await this.firebaseService.getDocumentById(
-          documents.user_color_images,
+        const imageColorPickData = await this.firebaseService.getDocumentById(
+          documents.image_color_picks,
           palette_paints.image_color_picks_id,
         );
 
-        if (image?.data) {
+        if (imageColorPickData?.data != null) {
+          const imageColorPick = await this.firebaseService.getDocumentById(
+            documents.user_color_images,
+            imageColorPickData.data?.image_id,
+          );
+
           palette_paints.image_color_picks = {
-            ...image.data,
-            created_at: new Date(image?.data.created_at._seconds * 1000),
+            ...imageColorPickData.data,
+            ...imageColorPick.data,
+            created_at: new Date(
+              imageColorPick?.data.created_at._seconds * 1000,
+            ),
           };
         } else palette_paints.image_color_picks = null;
       };
@@ -222,6 +230,47 @@ export class PalettesService {
       await batch.commit();
 
       response.data = responseData;
+    } catch (error) {
+      response.message = error.message;
+      response.executed = false;
+    } finally {
+      return response;
+    }
+  }
+
+  async deletePalette(palette_id: string): Promise<ApiResponse> {
+    const response: ApiResponse = {
+      executed: true,
+      message: '',
+      data: null,
+    };
+
+    try {
+      const paletteResponse = await this.firebaseService.getDocumentById(
+        documents.palettes,
+        palette_id,
+      );
+      if (!paletteResponse.executed || paletteResponse.data == null)
+        throw new Error(`Palette not found.`);
+
+      const palettesPaintsResponse =
+        await this.firebaseService.getDocumentsByProperty(
+          documents.palettes_paints,
+          'palette_id',
+          palette_id,
+        );
+
+      if (palettesPaintsResponse.data.length > 0) {
+        // Eliminar PALETTE PAINTS
+        //  image_color_picks_id
+        // Eliminar USER COLOR IMAGES
+        // Eliminar IMAGE COLOR PICKS
+      }
+
+      {
+        //Eliminar PALETTES
+      }
+      response.message = `Palettes and their dependencies removed`;
     } catch (error) {
       response.message = error.message;
       response.executed = false;
