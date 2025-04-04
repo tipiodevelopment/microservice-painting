@@ -60,15 +60,23 @@ export class PalettesService {
       });
 
       const getImage = async (palette_paints) => {
-        const image = await this.firebaseService.getDocumentById(
-          documents.user_color_images,
+        const imageColorPickData = await this.firebaseService.getDocumentById(
+          documents.image_color_picks,
           palette_paints.image_color_picks_id,
         );
 
-        if (image?.data) {
+        if (imageColorPickData?.data != null) {
+          const imageColorPick = await this.firebaseService.getDocumentById(
+            documents.user_color_images,
+            imageColorPickData.data?.image_id,
+          );
+
           palette_paints.image_color_picks = {
-            ...image.data,
-            created_at: new Date(image?.data.created_at._seconds * 1000),
+            ...imageColorPickData.data,
+            ...imageColorPick.data,
+            created_at: new Date(
+              imageColorPick?.data.created_at._seconds * 1000,
+            ),
           };
         } else palette_paints.image_color_picks = null;
       };
