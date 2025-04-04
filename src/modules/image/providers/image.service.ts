@@ -159,6 +159,7 @@ export class ImageService {
       r: number;
       x_coord: number;
       y_coord: number;
+      index: number;
     }[],
   ): Promise<ApiResponse> {
     const response: ApiResponse = {
@@ -188,7 +189,7 @@ export class ImageService {
       };
       await Promise.all(data.map(process));
 
-      response.data = responseData;
+      response.data = responseData.sort((a, b) => a?.index - b?.index);
     } catch (error) {
       response.message = error.message;
       response.executed = false;
