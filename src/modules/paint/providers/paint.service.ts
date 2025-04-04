@@ -15,13 +15,18 @@ export class PaintService {
   }
 
   async getAllPaints(
-    filters: { name?: string; code?: string; hex?: string },
+    filters: { name?: string; code?: string; hex?: string; brandId?: string },
     limit: number,
     page: number = 1,
   ) {
     console.log('getAllPaints filters', filters);
     const firestore = this.firebaseService.returnFirestore();
-    let query = firestore.collectionGroup('paints').orderBy('name');
+    let query;
+    if (filters?.brandId)
+      query = firestore
+        .collection(this.collectionPath(filters.brandId))
+        .orderBy('name');
+    else query = firestore.collectionGroup('paints').orderBy('name');
 
     if (filters.name) {
       const nameFilter = filters.name.toLowerCase();

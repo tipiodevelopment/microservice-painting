@@ -33,6 +33,7 @@ export class PaintController {
 
   @Get('/')
   getAllPaints(
+    @Query('brandId') brandId?: string,
     @Query('name') name?: string,
     @Query('code') code?: string,
     @Query('hex') hex?: string,
@@ -40,7 +41,7 @@ export class PaintController {
     @Query('page') page?: number,
   ) {
     return this._paintService.getAllPaints(
-      { name, code, hex },
+      { name, code, hex, brandId },
       Number(limit),
       page,
     );
