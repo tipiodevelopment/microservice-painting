@@ -69,12 +69,16 @@ export class PaintService {
     const snapshot = await query.limit(limit).get();
     const paints = snapshot.docs.map((doc) => {
       const brandId = doc.ref.parent.parent?.id;
+      const _paint = doc.data();
       const brand = brands.find((b) => b.id == brandId)?.name;
       return {
         id: doc.id,
         brand,
         brandId,
-        ...doc.data(),
+        ..._paint,
+        category: !_paint?.category ? '' : _paint.category,
+        isMetallic: !_paint?.isMetallic ? false : _paint.isMetallic,
+        isTransparent: !_paint?.isTransparent ? false : _paint.isTransparent,
       };
     });
 
