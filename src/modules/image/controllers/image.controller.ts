@@ -11,7 +11,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { ImageService } from '../providers/image.service';
-import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { executeError } from '../../../utils/error';
 import { SendUpdateImage } from '../dto/SendUpdateImage.dto';
 import { FirebaseAuthGuard } from 'src/modules/firebase/firebase-auth.guard';
@@ -20,6 +20,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import * as multer from 'multer';
 const storage = multer.memoryStorage();
 
+@ApiTags('Image')
 @Controller('image')
 export class ImageController {
   constructor(private readonly _imageService: ImageService) {}

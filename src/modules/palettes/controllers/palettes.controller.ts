@@ -12,12 +12,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { PalettesService } from '../providers/palettes.service';
-import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { executeError } from '../../../utils/error';
 import { FirebaseAuthGuard } from 'src/modules/firebase/firebase-auth.guard';
 import { SendSavePalettes } from '../dto/SendSavePalettes.dto';
 import { SendSavePalettesPaints } from '../dto/SendSavePalettesPaints.dto';
 
+@ApiTags('Palettes')
 @Controller('palettes')
 export class PalettesController {
   constructor(private readonly _palettesService: PalettesService) {}

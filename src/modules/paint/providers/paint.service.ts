@@ -10,6 +10,61 @@ export class PaintService {
     return { executed: true, message: 'OK', microservice: 'Painting' };
   }
 
+  async countPaintsWithAndWithoutBarcode() {
+    const firestore = this.firebaseService.returnFirestore();
+    const snapshot = await firestore.collectionGroup('paints').get();
+
+    let withBarcode = 0;
+    let withoutBarcode = 0;
+
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      const barcode = data.barcode;
+
+      if (barcode && typeof barcode === 'string' && barcode.trim() !== '') {
+        withBarcode++;
+      } else {
+        withoutBarcode++;
+      }
+    });
+
+    return {
+      total: snapshot.size,
+      withBarcode,
+      withoutBarcode,
+    };
+  }
+
+  async getPaintsWithoutBarcode(): Promise<
+    { id: string; brandId: string; name: string }[]
+  > {
+    const firestore = this.firebaseService.returnFirestore();
+    const snapshot = await firestore.collectionGroup('paints').get();
+
+    const paintsWithoutBarcode: {
+      id: string;
+      brandId: string;
+      name: string;
+    }[] = [];
+
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      const barcode = data.barcode;
+
+      if (!barcode || typeof barcode !== 'string' || barcode.trim() === '') {
+        const brandId = doc.ref.parent.parent?.id || '';
+        paintsWithoutBarcode.push({
+          id: doc.id,
+          brandId,
+          name: data.name || '',
+          // ...data,
+        });
+      }
+    });
+
+    return paintsWithoutBarcode;
+  }
+
   private collectionPath(brandId: string) {
     return `brands/${brandId}/paints`;
   }

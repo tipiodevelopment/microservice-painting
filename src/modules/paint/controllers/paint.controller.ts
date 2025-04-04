@@ -10,11 +10,12 @@ import {
   Body,
 } from '@nestjs/common';
 import { PaintService } from '../providers/paint.service';
-import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { executeError } from '../../../utils/error';
 import { SendCreatePaint } from '../dto/SendCreatePaint.dto';
 import { SendUpdatePaint } from '../dto/SendUpdatePaint.dto';
 
+@ApiTags('PAINT')
 @Controller('paint')
 export class PaintController {
   constructor(private readonly _paintService: PaintService) {}

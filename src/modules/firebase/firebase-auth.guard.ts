@@ -12,15 +12,24 @@ export class FirebaseAuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const token = this.extractToken(request);
 
+    // 1) If we have x-user-uid, skip Firebase token check and set user.uid
+    const devUid = request.headers['x-user-uid'];
+    if (devUid) {
+      request.user = { uid: devUid };
+      return true;
+    }
+
+    // 2) Otherwise, extract the Bearer token
+    const token = this.extractToken(request);
     if (!token) {
       throw new UnauthorizedException('No token provided');
     }
 
+    // 3) Validate token with Firebase
     try {
       const decodedToken = await this.firebaseService.verifyToken(token);
-      request.user = decodedToken; // Agregamos los datos del usuario al request
+      request.user = decodedToken; // e.g. { uid: 'firebaseUid123', email: ... }
       return true;
     } catch (error) {
       console.log(error);

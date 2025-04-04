@@ -1,8 +1,9 @@
 import { Controller, Get, HttpCode } from '@nestjs/common';
 import { BrandService } from '../providers/brand.service';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { executeError } from '../../../utils/error';
 
+@ApiTags('BRAND')
 @Controller('brand')
 export class BrandController {
   constructor(private readonly _brandService: BrandService) {}

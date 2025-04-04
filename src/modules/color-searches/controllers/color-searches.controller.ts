@@ -8,10 +8,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ColorSearchesService } from '../providers/color-searches.service';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { executeError } from '../../../utils/error';
 import { FirebaseAuthGuard } from '../../../modules/firebase/firebase-auth.guard';
 
+@ApiTags('Color Searches')
 @Controller('color-searches')
 export class ColorSearchesController {
   constructor(private readonly _colorSearchesService: ColorSearchesService) {}

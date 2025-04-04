@@ -9,13 +9,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from '../providers/auth.service';
-import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { executeError } from '../../../utils/error';
 import { SendAuthRegister } from '../dtos/SendAuthRegister.dto';
 import { SendSetRole } from '../dtos/SendSetRole.dto';
 import { FirebaseAuthGuard } from '../../../modules/firebase/firebase-auth.guard';
 import { SendAuthCreateUser } from '../dtos/SendAuthCreateUser.dto';
 
+@ApiTags('AUTH')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
