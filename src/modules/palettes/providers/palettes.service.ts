@@ -30,7 +30,8 @@ export class PalettesService {
         .collection(documents.palettes)
         .orderBy('name')
         .where('userId', '==', userId)
-        .orderBy('userId');
+        .orderBy('userId')
+        .orderBy('created_at', 'desc');
 
       const totalSnapshot = await query.get();
       const totalPalettes = totalSnapshot.size;
