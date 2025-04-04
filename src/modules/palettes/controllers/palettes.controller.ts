@@ -11,8 +11,15 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiHeader,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { PalettesService } from '../providers/palettes.service';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { executeError } from '../../../utils/error';
 import { FirebaseAuthGuard } from 'src/modules/firebase/firebase-auth.guard';
 import { SendSavePalettes } from '../dto/SendSavePalettes.dto';
@@ -35,14 +42,35 @@ export class PalettesController {
     }
   }
 
+  /**
+   * GET /palettes?limit=10&page=1
+   * Retrieves a paginated list of palettes for the current user
+   */
   @UseGuards(FirebaseAuthGuard)
   @Get('/')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Save palettes' })
-  @ApiResponse({ status: 200, description: 'OK' })
-  @ApiBody({
-    type: SendSavePalettes,
-    description: 'Save palettes dto',
+  @ApiOperation({ summary: 'Get user palettes (paginated)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns a paginated list of palettes',
+  })
+  @ApiHeader({
+    name: 'x-user-uid',
+    required: false,
+    description:
+      'Optional UID for local testing without Firebase tokens (NOT for production).',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of palettes per page',
+    example: 10,
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Page number',
+    example: 1,
   })
   async getPalettes(
     @Req() req,
@@ -57,20 +85,26 @@ export class PalettesController {
     }
   }
 
+  /**
+   * POST /palettes
+   * Saves a new palette for the current user
+   */
   @UseGuards(FirebaseAuthGuard)
   @Post('/')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Save palettes' })
-  @ApiResponse({ status: 200, description: 'OK' })
+  @ApiOperation({ summary: 'Save a new palette' })
+  @ApiResponse({ status: 200, description: 'Palette saved successfully' })
+  @ApiHeader({
+    name: 'x-user-uid',
+    required: false,
+    description:
+      'Optional UID for local testing without Firebase tokens (NOT for production).',
+  })
   @ApiBody({
     type: SendSavePalettes,
-    description: 'Save palettes dto',
+    description: 'Data needed to create a new palette',
   })
-  async savePalette(
-    @Req() req,
-    @Body()
-    body: SendSavePalettes,
-  ) {
+  async savePalette(@Req() req, @Body() body: SendSavePalettes) {
     try {
       const currentUser = req.user;
       return this._palettesService.savePalette(currentUser.uid, body);
@@ -79,19 +113,28 @@ export class PalettesController {
     }
   }
 
+  /**
+   * POST /palettes/:palette_id/paints
+   * Adds paints to an existing palette
+   */
   @UseGuards(FirebaseAuthGuard)
   @Post('/:palette_id/paints')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Save palette paints' })
-  @ApiResponse({ status: 200, description: 'OK' })
+  @ApiOperation({ summary: 'Add paints to a palette' })
+  @ApiResponse({ status: 200, description: 'Paints added successfully' })
+  @ApiHeader({
+    name: 'x-user-uid',
+    required: false,
+    description:
+      'Optional UID for local testing without Firebase tokens (NOT for production).',
+  })
   @ApiBody({
-    type: SendSavePalettesPaints,
-    description: 'Save palette paints dto',
+    type: [SendSavePalettesPaints],
+    description: 'Array of paints (paint_id, brand_id, etc.) to be added',
   })
   async savePalettePaints(
     @Param('palette_id') palette_id: string,
-    @Body()
-    body: SendSavePalettesPaints[],
+    @Body() body: SendSavePalettesPaints[],
   ) {
     try {
       return this._palettesService.savePalettePaints(palette_id, body);
@@ -100,11 +143,21 @@ export class PalettesController {
     }
   }
 
+  /**
+   * DELETE /palettes/:palette_id
+   * Deletes a palette (and its associated documents) by ID
+   */
   @UseGuards(FirebaseAuthGuard)
   @Delete('/:palette_id')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Delete palette paints' })
-  @ApiResponse({ status: 200, description: 'OK' })
+  @ApiOperation({ summary: 'Delete a palette' })
+  @ApiResponse({ status: 200, description: 'Palette deleted successfully' })
+  @ApiHeader({
+    name: 'x-user-uid',
+    required: false,
+    description:
+      'Optional UID for local testing without Firebase tokens (NOT for production).',
+  })
   async deletePalette(@Param('palette_id') palette_id: string) {
     try {
       return this._palettesService.deletePalette(palette_id);

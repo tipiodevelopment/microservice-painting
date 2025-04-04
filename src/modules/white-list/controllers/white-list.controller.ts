@@ -40,7 +40,7 @@ export class WhiteListController {
 
   @UseGuards(FirebaseAuthGuard)
   @Post('/')
-  @ApiOperation({ summary: 'Save an item to the WhiteList' })
+  @ApiOperation({ summary: 'Save an item to the WishList' })
   @ApiResponse({ status: 201, description: 'Item saved successfully' })
   @ApiHeader({
     name: 'x-user-uid',
@@ -82,7 +82,7 @@ export class WhiteListController {
 
   @UseGuards(FirebaseAuthGuard)
   @Get('/')
-  @ApiOperation({ summary: 'Get user wishlist' })
+  @ApiOperation({ summary: 'Get user WishList' })
   @ApiResponse({ status: 200, description: 'Returns user wishlist' })
   @ApiHeader({
     name: 'x-user-uid',
@@ -104,7 +104,7 @@ export class WhiteListController {
 
   @UseGuards(FirebaseAuthGuard)
   @Delete('/:id')
-  @ApiOperation({ summary: 'Delete an item from the WhiteList' })
+  @ApiOperation({ summary: 'Delete an item from the WishList' })
   @ApiResponse({ status: 200, description: 'Item deleted successfully' })
   @ApiHeader({
     name: 'x-user-uid',
@@ -125,7 +125,7 @@ export class WhiteListController {
 
   @UseGuards(FirebaseAuthGuard)
   @Patch('/:id')
-  @ApiOperation({ summary: 'Update an item from the WhiteList' })
+  @ApiOperation({ summary: 'Update an item from the WishList' })
   @ApiResponse({ status: 200, description: 'Item updated successfully' })
   @ApiHeader({
     name: 'x-user-uid',

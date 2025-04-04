@@ -1,6 +1,6 @@
 import { Controller, Get, HttpCode } from '@nestjs/common';
-import { BrandService } from '../providers/brand.service';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { BrandService } from '../providers/brand.service';
 import { executeError } from '../../../utils/error';
 
 @ApiTags('BRAND')
@@ -22,7 +22,11 @@ export class BrandController {
 
   @Get('')
   @HttpCode(200)
-  @ApiResponse({ status: 200, description: 'OK' })
+  @ApiOperation({ summary: 'Retrieve all brands' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns a list of brand data',
+  })
   getBrands() {
     try {
       return this._brandService.getBrands();
