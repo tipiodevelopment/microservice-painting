@@ -196,7 +196,68 @@ export class WhiteListService {
       throw new Error('Not found or unauthorized');
     }
 
-    await ref.update({ ...updates, updated_at: new Date() });
-    return { updated: true };
+    // Obtener todos los ítems con prioridad
+    const priorityQuery = await firestore
+      .collection(documents.wishlist)
+      .where('user_id', '==', userId)
+      .where('priority', '!=', null)
+      .orderBy('priority')
+      .get();
+
+    let priorityItems = priorityQuery.docs.map((doc) => ({
+      id: doc.id,
+      priority: doc.data().priority,
+    }));
+
+    // Remover el ítem actual de la lista
+    priorityItems = priorityItems.filter((item) => item.id !== id);
+
+    if (updates.priority === -1) {
+      // Quitar prioridad
+      await ref.update({ priority: null, updated_at: new Date() });
+
+      // Reasignar prioridades (comprimir)
+      await Promise.all(
+        priorityItems.map((item, index) => {
+          return firestore
+            .collection(documents.wishlist)
+            .doc(item.id)
+            .update({
+              priority: index + 1,
+              updated_at: new Date(),
+            });
+        }),
+      );
+
+      return { updated: true, newPriority: null };
+    }
+
+    if (updates.priority === 0) {
+      // Agregar al final
+      const newPriority = priorityItems.length + 1;
+      priorityItems.push({ id, priority: newPriority });
+
+      await ref.update({ priority: newPriority, updated_at: new Date() });
+      return { updated: true, newPriority };
+    }
+
+    // Insertar en posición específica
+    const insertAt = updates.priority!;
+    priorityItems.splice(insertAt - 1, 0, { id, priority: insertAt });
+
+    // Reasignar todas las prioridades
+    await Promise.all(
+      priorityItems.map((item, index) => {
+        return firestore
+          .collection(documents.wishlist)
+          .doc(item.id)
+          .update({
+            priority: index + 1,
+            updated_at: new Date(),
+          });
+      }),
+    );
+
+    return { updated: true, newPriority: insertAt };
   }
 }
