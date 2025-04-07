@@ -8,4 +8,5 @@ export enum documents {
   palettes = 'palettes',
   palettes_paints = 'palettes_paints',
   wishlist = 'wishlist',
+  inventory = 'inventory',
 }

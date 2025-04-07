@@ -1,0 +1,148 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Post,
+  Put,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { InventoryService } from '../providers/inventory.service';
+import { executeError } from '../../../utils/error';
+import { FirebaseAuthGuard } from '../../../modules/firebase/firebase-auth.guard';
+import { SendCreateInventory } from '../dto/SendCreateInventory.dto';
+import { SendUpdateInventory } from '../dto/SendUpdateInventory.dto';
+
+@ApiTags('INVENTORY')
+@Controller('inventory')
+export class InventoryController {
+  constructor(private readonly _inventoryService: InventoryService) {}
+
+  @Get('/health-check')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Health check' })
+  @ApiResponse({ status: 200, description: 'OK' })
+  async HealthCheck() {
+    try {
+      return this._inventoryService.healthCheck();
+    } catch (error) {
+      executeError(error);
+    }
+  }
+
+  /**
+   * POST /inventory
+   * Creates a new inventory record.
+   */
+  @UseGuards(FirebaseAuthGuard)
+  @Post('/')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Create a new inventory record' })
+  @ApiResponse({ status: 200, description: 'Inventory created successfully' })
+  @ApiBody({
+    type: SendCreateInventory,
+    description: 'Payload for creating an inventory record',
+  })
+  createInventory(@Req() req, @Body() requestService: SendCreateInventory) {
+    try {
+      const currentUser = req.user;
+      return this._inventoryService.createInventory(
+        currentUser.uid,
+        requestService,
+      );
+    } catch (error) {
+      executeError(error);
+    }
+  }
+
+  /**
+   * PUT /inventory
+   * Update an inventory record.
+   */
+  @UseGuards(FirebaseAuthGuard)
+  @Put('/:inventoryId')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Update an inventory record' })
+  @ApiResponse({ status: 200, description: 'Inventory update successfully' })
+  @ApiBody({
+    type: SendUpdateInventory,
+    description: 'Payload for update an inventory record',
+  })
+  updateInventory(
+    @Req() req,
+    @Param('inventoryId') inventoryId: string,
+    @Body() requestService: SendUpdateInventory,
+  ) {
+    try {
+      const currentUser = req.user;
+      return this._inventoryService.updateInventory(
+        currentUser.uid,
+        inventoryId,
+        requestService,
+      );
+    } catch (error) {
+      executeError(error);
+    }
+  }
+
+  /**
+   * DELETE /inventory
+   * Delete an inventory.
+   */
+  @UseGuards(FirebaseAuthGuard)
+  @Delete('/:inventoryId')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Delete an inventory' })
+  @ApiResponse({ status: 200, description: 'Inventory update successfully' })
+  deleteInventory(@Req() req, @Param('inventoryId') inventoryId: string) {
+    try {
+      const currentUser = req.user;
+      return this._inventoryService.deleteInventory(
+        currentUser.uid,
+        inventoryId,
+      );
+    } catch (error) {
+      executeError(error);
+    }
+  }
+
+  /**
+   * GET /inventory
+   * Retrieves inventories by filters
+   */
+  @UseGuards(FirebaseAuthGuard)
+  @Get('/')
+  @ApiOperation({
+    summary: 'Get all inventories (optionally filtered)',
+    description:
+      'Filters: brandId, stock. Supports pagination via limit & page.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns paginated inventory data',
+  })
+  getInventories(
+    @Req() req,
+    @Query('brandId') brandId?: string,
+    @Query('stock') stock?: number,
+    @Query('limit') limit = 10,
+    @Query('page') page?: number,
+  ) {
+    try {
+      const currentUser = req.user;
+      return this._inventoryService.getInventories(
+        currentUser.uid,
+        { brandId, stock },
+        Number(limit),
+        page,
+      );
+    } catch (error) {
+      executeError(error);
+    }
+  }
+}
