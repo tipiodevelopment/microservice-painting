@@ -222,6 +222,24 @@ export class InventoryService {
       };
     });
 
+    const getPaint = async (inventory) => {
+      const paintRef = firestore.doc(
+        `brands/${inventory.brand_id}/paints/${inventory.paint_id}`,
+      );
+      const paintSnapshot = await paintRef.get();
+      const _data = paintSnapshot.data();
+      inventory.paint = {
+        ..._data,
+        created_at: new Date(_data?.created_at._seconds * 1000),
+        updated_at: new Date(_data?.updated_at._seconds * 1000),
+        brandId: inventory.brand_id,
+        category: '',
+        isMetallic: false,
+        isTransparent: false,
+      };
+    };
+
+    await Promise.all(inventories.map(getPaint));
     return {
       currentPage,
       totalPaints,
