@@ -74,6 +74,7 @@ export class PaintService {
     filters: { name?: string; code?: string; hex?: string; brandId?: string },
     limit: number,
     page: number = 1,
+    sort: 'asc' | 'desc' = 'asc',
   ) {
     const responseBrands = await this.firebaseService.getCollection(
       documents.brands,
@@ -85,8 +86,8 @@ export class PaintService {
     if (filters?.brandId)
       query = firestore
         .collection(this.collectionPath(filters.brandId))
-        .orderBy('name');
-    else query = firestore.collectionGroup('paints').orderBy('name');
+        .orderBy('name', sort);
+    else query = firestore.collectionGroup('paints').orderBy('name', sort);
 
     if (filters.name) {
       const nameFilter = filters.name.toLowerCase();

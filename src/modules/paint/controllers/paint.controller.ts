@@ -96,12 +96,14 @@ export class PaintController {
     @Query('hex') hex?: string,
     @Query('limit') limit = 10,
     @Query('page') page?: number,
+    @Query('sort') sort: 'asc' | 'desc' = 'asc',
   ) {
     try {
       return this._paintService.getAllPaints(
         { name, code, hex, brandId },
         Number(limit),
         page,
+        sort,
       );
     } catch (error) {
       executeError(error);
