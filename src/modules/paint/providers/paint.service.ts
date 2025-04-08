@@ -86,8 +86,11 @@ export class PaintService {
     if (filters?.brandId)
       query = firestore
         .collection(this.collectionPath(filters.brandId))
-        .orderBy('name', sort);
-    else query = firestore.collectionGroup('paints').orderBy('name', sort);
+        .orderBy('name', sort || 'asc');
+    else
+      query = firestore
+        .collectionGroup('paints')
+        .orderBy('name', sort || 'asc');
 
     if (filters.name) {
       const nameFilter = filters.name.toLowerCase();

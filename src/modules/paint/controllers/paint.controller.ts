@@ -96,7 +96,7 @@ export class PaintController {
     @Query('hex') hex?: string,
     @Query('limit') limit = 10,
     @Query('page') page?: number,
-    @Query('sort') sort: 'asc' | 'desc' = 'asc',
+    @Query('sort') sort?: 'asc' | 'desc',
   ) {
     try {
       return this._paintService.getAllPaints(
