@@ -1,4 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { FirebaseService } from '../../firebase/firebase.service';
 import { documents } from 'src/utils/enums/documents.enum';
 
@@ -89,25 +94,100 @@ export class WhiteListService {
       priority: number;
     },
   ) {
-    const firestore = this.firebaseService.returnFirestore();
-    const ref = firestore.collection(documents.wishlist).doc();
+    try {
+      const firestore = this.firebaseService.returnFirestore();
 
-    await ref.set({
-      user_id: userId,
-      paint_id: body.paint_id,
-      brand_id: body.brand_id,
-      type: body.type,
-      priority: body.priority,
-      created_at: new Date(),
-      updated_at: new Date(),
-      deleted: false,
-    });
+      // Validate that the user exists
+      const userDoc = await firestore
+        .collection(documents.users)
+        .doc(userId)
+        .get();
+      if (!userDoc.exists) {
+        throw new NotFoundException('User does not exist');
+      }
 
-    return { success: true, id: ref.id };
+      // Validate that the brand exists
+      const brandDoc = await firestore
+        .collection(documents.brands)
+        .doc(body.brand_id)
+        .get();
+      if (!brandDoc.exists) {
+        throw new NotFoundException('Brand does not exist');
+      }
+
+      // Validate that the paint exists within the brand
+      const paintDoc = await firestore
+        .collection(documents.brands)
+        .doc(body.brand_id)
+        .collection(documents.paints)
+        .doc(body.paint_id)
+        .get();
+      if (!paintDoc.exists) {
+        throw new NotFoundException(
+          'Paint does not exist for the specified brand',
+        );
+      }
+
+      // Check if a wishlist entry already exists for the given combination (active or deleted)
+      const existingSnapshot = await firestore
+        .collection(documents.wishlist)
+        .where('user_id', '==', userId)
+        .where('paint_id', '==', body.paint_id)
+        .where('brand_id', '==', body.brand_id)
+        .limit(1)
+        .get();
+
+      if (!existingSnapshot.empty) {
+        const existingDoc = existingSnapshot.docs[0];
+        const existingData = existingDoc.data();
+
+        // If the entry is active, throw a conflict exception
+        if (existingData.deleted === false) {
+          throw new ConflictException('Paint is already in the wishlist');
+        } else {
+          // If the entry exists but is marked as deleted, reactivate it by updating the entry
+          await existingDoc.ref.update({
+            type: body.type,
+            priority: body.priority,
+            updated_at: new Date(),
+            deleted: false,
+          });
+          return { success: true, id: existingDoc.id, restored: true };
+        }
+      }
+
+      // If no entry exists, create a new one
+      const ref = firestore.collection(documents.wishlist).doc();
+      await ref.set({
+        user_id: userId,
+        paint_id: body.paint_id,
+        brand_id: body.brand_id,
+        type: body.type,
+        priority: body.priority,
+        created_at: new Date(),
+        updated_at: new Date(),
+        deleted: false,
+      });
+
+      return { success: true, id: ref.id };
+    } catch (error) {
+      throw new InternalServerErrorException(
+        `Error processing request: ${error.message}`,
+      );
+    }
   }
 
   async getUserWhiteList(userId: string) {
     const firestore = this.firebaseService.returnFirestore();
+
+    // Validate that the user exists
+    const userDoc = await firestore
+      .collection(documents.users)
+      .doc(userId)
+      .get();
+    if (!userDoc.exists) {
+      throw new NotFoundException('User does not exist');
+    }
 
     const querySnap = await firestore
       .collection(documents.wishlist)
@@ -121,13 +201,20 @@ export class WhiteListService {
     for (const doc of querySnap.docs) {
       const data = doc.data();
 
+      // Validate that both the paint and the brand exist
       const paintSnap = await firestore
-        .doc(`brands/${data.brand_id}/paints/${data.paint_id}`)
+        .doc(`brands/${data.brand_id}/${documents.paints}/${data.paint_id}`)
+        .get();
+      const brandSnap = await firestore
+        .doc(`${documents.brands}/${data.brand_id}`)
         .get();
 
-      const brandSnap = await firestore.doc(`brands/${data.brand_id}`).get();
+      // Exclude legacy records if brand or paint do not exist
+      if (!paintSnap.exists || !brandSnap.exists) {
+        continue;
+      }
 
-      // 🔍 Buscar las paletas que contienen esta pintura con esta marca
+      // Look for palettes that contain this paint with this brand
       const palettesPaintsSnap = await firestore
         .collection('palettes_paints')
         .where('paint_id', '==', data.paint_id)
@@ -135,17 +222,12 @@ export class WhiteListService {
         .get();
 
       const paletteNames: string[] = [];
-
       for (const ref of palettesPaintsSnap.docs) {
         const paletteData = ref.data();
         const paletteSnap = await firestore
-          .doc(`palettes/${paletteData.palette_id}`)
+          .doc(`${documents.palettes}/${paletteData.palette_id}`)
           .get();
-
-        if (
-          paletteSnap.exists &&
-          paletteSnap.data()?.userId === userId // ✅ solo paletas del usuario
-        ) {
+        if (paletteSnap.exists && paletteSnap.data()?.userId === userId) {
           paletteNames.push(paletteSnap.data().name);
         }
       }
@@ -157,8 +239,8 @@ export class WhiteListService {
         type: data.type,
         priority: data.priority,
         created_at: data.created_at,
-        paint: paintSnap.exists ? paintSnap.data() : null,
-        brand: brandSnap.exists ? brandSnap.data() : null,
+        paint: paintSnap.data(),
+        brand: brandSnap.data(),
         palettes: paletteNames,
       });
     }

@@ -1,5 +1,6 @@
 export enum documents {
   brands = 'brands',
+  paints = 'paints',
   users = 'users',
   audit_log = 'audit_log',
   user_color_images = 'user_color_images',
