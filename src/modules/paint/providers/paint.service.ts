@@ -454,4 +454,95 @@ export class PaintService {
         Math.pow(c1.b - c2.b, 2),
     );
   }
+
+  async getPaintUsageInfo(
+    userId: string,
+    brandId: string,
+    paintId: string,
+  ): Promise<ApiResponse> {
+    const response: ApiResponse = { executed: true, message: '', data: null };
+    try {
+      const firestore = this.firebaseService.returnFirestore();
+
+      // 1. Obtener la información de la pintura.
+      const paintDocRef = firestore.doc(
+        `${documents.brands}/${brandId}/paints/${paintId}`,
+      );
+      const paintDoc = await paintDocRef.get();
+      if (!paintDoc.exists) {
+        throw new Error(
+          `Paint with id: ${paintId} was not found for brand ${brandId}`,
+        );
+      }
+      const paintData = paintDoc.data();
+
+      // 2. Obtener la información de la marca.
+      const brandDocRef = firestore.doc(`${documents.brands}/${brandId}`);
+      const brandDoc = await brandDocRef.get();
+      const brandData = brandDoc.exists ? brandDoc.data() : null;
+
+      // 3. Verificar si la pintura está en el inventario del usuario.
+      const invQuery = await firestore
+        .collection(documents.inventory)
+        .where('user_id', '==', userId)
+        .where('brand_id', '==', brandId)
+        .where('paint_id', '==', paintId)
+        .limit(1)
+        .get();
+      const inInventory = !invQuery.empty;
+
+      // 4. Verificar si la pintura está en la wishlist (registros activos) del usuario.
+      const wlQuery = await firestore
+        .collection(documents.wishlist)
+        .where('user_id', '==', userId)
+        .where('brand_id', '==', brandId)
+        .where('paint_id', '==', paintId)
+        .where('deleted', '==', false)
+        .limit(1)
+        .get();
+      const inWhitelist = !wlQuery.empty;
+
+      // 5. Obtener las paletas en las que se utiliza esta pintura.
+      const ppSnapshot = await firestore
+        .collection(documents.palettes_paints)
+        .where('brand_id', '==', brandId)
+        .where('paint_id', '==', paintId)
+        .get();
+      const palettes: any[] = [];
+      for (const ppDoc of ppSnapshot.docs) {
+        const ppData = ppDoc.data();
+        if (ppData.palette_id) {
+          const paletteDoc = await firestore
+            .doc(`${documents.palettes}/${ppData.palette_id}`)
+            .get();
+          if (paletteDoc.exists) {
+            const paletteData = paletteDoc.data();
+            // Filtrar para mostrar solo las paletas del usuario (si es que aplica)
+            if (paletteData.userId === userId) {
+              palettes.push({
+                created_at: paletteData.created_at, // Puedes formatear la fecha según sea necesario
+                name: paletteData.name,
+                userId: paletteData.userId,
+              });
+            }
+          }
+        }
+      }
+
+      // 6. Armar la respuesta final incluyendo la info de la pintura y de la marca.
+      response.data = {
+        brand_id: brandId,
+        paint_id: paintId,
+        paint: paintData, // Información completa de la pintura.
+        brand: brandData, // Información completa de la marca.
+        in_inventory: inInventory,
+        in_whitelist: inWhitelist,
+        palettes, // Listado de paletas en las que se utiliza la pintura.
+      };
+    } catch (error) {
+      response.executed = false;
+      response.message = error.message;
+    }
+    return response;
+  }
 }

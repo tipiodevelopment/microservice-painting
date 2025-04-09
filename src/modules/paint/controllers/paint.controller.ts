@@ -8,6 +8,8 @@ import {
   Param,
   Query,
   Body,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBody,
@@ -16,11 +18,13 @@ import {
   ApiTags,
   ApiQuery,
   ApiParam,
+  ApiHeader,
 } from '@nestjs/swagger';
 import { PaintService } from '../providers/paint.service';
 import { executeError } from '../../../utils/error';
 import { SendCreatePaint } from '../dto/SendCreatePaint.dto';
 import { SendUpdatePaint } from '../dto/SendUpdatePaint.dto';
+import { FirebaseAuthGuard } from 'src/modules/firebase/firebase-auth.guard';
 
 @ApiTags('PAINT')
 @Controller('paint')
@@ -104,6 +108,42 @@ export class PaintController {
         Number(limit),
         page,
         sort,
+      );
+    } catch (error) {
+      executeError(error);
+    }
+  }
+
+  @UseGuards(FirebaseAuthGuard)
+  @Get('/paint-info/:brandId/:paintId')
+  @HttpCode(200)
+  @ApiHeader({
+    name: 'x-user-uid',
+    required: false,
+    description:
+      'Optional UID for local testing without Firebase tokens (NOT for production).',
+  })
+  @ApiParam({
+    name: 'brandId',
+    description: 'Paint brand ID',
+    example: 'Arteza',
+  })
+  @ApiParam({
+    name: 'paintId',
+    description: 'paint ID',
+    example: 'A001',
+  })
+  async getPaintInfo(
+    @Req() req,
+    @Param('brandId') brandId: string,
+    @Param('paintId') paintId: string,
+  ) {
+    try {
+      const currentUser = req.user;
+      return await this._paintService.getPaintUsageInfo(
+        currentUser.uid,
+        brandId,
+        paintId,
       );
     } catch (error) {
       executeError(error);

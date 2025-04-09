@@ -165,4 +165,22 @@ export class PalettesController {
       executeError(error);
     }
   }
+
+  @UseGuards(FirebaseAuthGuard)
+  @Get('/most-used-paints')
+  @HttpCode(200)
+  @ApiHeader({
+    name: 'x-user-uid',
+    required: false,
+    description:
+      'Optional UID for local testing without Firebase tokens (NOT for production).',
+  })
+  async getMostUsedPaints(@Req() req) {
+    try {
+      const currentUser = req.user;
+      return await this._palettesService.getMostUsedPaints(currentUser.uid);
+    } catch (error) {
+      executeError(error);
+    }
+  }
 }

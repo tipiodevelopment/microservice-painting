@@ -14,6 +14,124 @@ export class PalettesService {
     return { executed: true, message: 'OK', microservice: 'Painting' };
   }
 
+  async getMostUsedPaints(userId: string): Promise<ApiResponse> {
+    const response: ApiResponse = { executed: true, message: '', data: null };
+    try {
+      const firestore = this.firebaseService.returnFirestore();
+
+      // 1. Obtener todas las paletas del usuario.
+      const palettesSnapshot = await firestore
+        .collection(documents.palettes)
+        .where('userId', '==', userId)
+        .get();
+      const paletteIds: string[] = palettesSnapshot.docs.map((doc) => doc.id);
+
+      // 2. Obtener todos los documentos de "palettes_paints" asociados a las paletas del usuario.
+      const allPalettePaints: any[] = [];
+      if (paletteIds.length > 0) {
+        const chunkSize = 10; // debido al límite en la cláusula "in"
+        for (let i = 0; i < paletteIds.length; i += chunkSize) {
+          const chunk = paletteIds.slice(i, i + chunkSize);
+          const palettePaintsQuery = await firestore
+            .collection(documents.palettes_paints)
+            .where('palette_id', 'in', chunk)
+            .get();
+          allPalettePaints.push(
+            ...palettePaintsQuery.docs.map((doc) => doc.data()),
+          );
+        }
+      }
+
+      // 3. Contar las ocurrencias de cada pintura, agrupando por brand_id y paint_id.
+      const usageMap = new Map<
+        string,
+        { count: number; brand_id: string; paint_id: string }
+      >();
+      allPalettePaints.forEach((item: any) => {
+        const key = `${item.brand_id}_${item.paint_id}`;
+        if (usageMap.has(key)) {
+          const existing = usageMap.get(key)!;
+          existing.count++;
+        } else {
+          usageMap.set(key, {
+            count: 1,
+            brand_id: item.brand_id,
+            paint_id: item.paint_id,
+          });
+        }
+      });
+
+      // 4. Consultar el inventario del usuario.
+      const invSnapshot = await firestore
+        .collection(documents.inventory)
+        .where('user_id', '==', userId)
+        .get();
+      const inventoryMap = new Map<string, boolean>();
+      invSnapshot.docs.forEach((doc) => {
+        const data = doc.data();
+        const key = `${data.brand_id}_${data.paint_id}`;
+        inventoryMap.set(key, true);
+      });
+
+      // 5. Consultar la wishlist del usuario (sólo registros activos).
+      const wlSnapshot = await firestore
+        .collection(documents.wishlist)
+        .where('user_id', '==', userId)
+        .where('deleted', '==', false)
+        .get();
+      const whitelistMap = new Map<string, boolean>();
+      wlSnapshot.docs.forEach((doc) => {
+        const data = doc.data();
+        const key = `${data.brand_id}_${data.paint_id}`;
+        whitelistMap.set(key, true);
+      });
+
+      // 6. Armar el arreglo de resultados base.
+      const aggregated: any[] = [];
+      usageMap.forEach((value, key) => {
+        aggregated.push({
+          brand_id: value.brand_id,
+          paint_id: value.paint_id,
+          count: value.count,
+          in_inventory: inventoryMap.has(key),
+          in_whitelist: whitelistMap.has(key),
+        });
+      });
+
+      // 7. Para cada elemento, obtener la información completa del paint y de la marca.
+      const results = await Promise.all(
+        aggregated.map(async (item) => {
+          // Obtener la info de la pintura (asumida en la ruta: brands/<brand_id>/paints/<paint_id>)
+          const paintDoc = await firestore
+            .doc(`${documents.brands}/${item.brand_id}/paints/${item.paint_id}`)
+            .get();
+          const paintData = paintDoc.exists ? paintDoc.data() : null;
+
+          // Obtener la info de la marca (asumida en la colección de brands)
+          const brandDoc = await firestore
+            .doc(`${documents.brands}/${item.brand_id}`)
+            .get();
+          const brandData = brandDoc.exists ? brandDoc.data() : null;
+
+          return {
+            ...item,
+            paint: paintData,
+            brand: brandData,
+          };
+        }),
+      );
+
+      // 8. Ordenar el resultado de mayor a menor según la cantidad (count)
+      results.sort((a, b) => b.count - a.count);
+
+      response.data = results;
+    } catch (error) {
+      response.executed = false;
+      response.message = error.message;
+    }
+    return response;
+  }
+
   async getPalettes(
     userId: string,
     limit: number,
