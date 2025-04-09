@@ -11,9 +11,32 @@ export class BrandService {
   }
 
   async getBrands() {
-    const responseBrands = await this.firebaseService.getCollection(
-      documents.brands,
-    );
-    return responseBrands.data;
+    const firestore = this.firebaseService.returnFirestore();
+    const brandsRef = firestore.collection(documents.brands);
+    const brandsSnapshot = await brandsRef.get();
+    const brands = brandsSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    const paintsSnapshot = await firestore.collectionGroup('paints').get();
+    const brandPaintCountMap: Record<string, number> = {};
+    paintsSnapshot.forEach((doc) => {
+      const brandId = doc.ref.parent.parent?.id;
+      if (!brandId) return;
+
+      if (!brandPaintCountMap[brandId]) {
+        brandPaintCountMap[brandId] = 0;
+      }
+      brandPaintCountMap[brandId]++;
+    });
+    const brandsWithPaintCount = brands.map((brand) => {
+      const paintCount = brandPaintCountMap[brand.id] ?? 0;
+      return {
+        ...brand,
+        paintCount,
+      };
+    });
+
+    return brandsWithPaintCount;
   }
 }
