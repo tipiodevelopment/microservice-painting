@@ -128,6 +128,22 @@ export class WhiteListService {
         );
       }
 
+      // <-- NUEVO BLOQUE: Verificar si existe en INVENTORY y eliminarlo si es así -->
+      const inventorySnapshot = await firestore
+        .collection(documents.inventory)
+        .where('user_id', '==', userId)
+        .where('brand_id', '==', body.brand_id)
+        .where('paint_id', '==', body.paint_id)
+        .limit(1)
+        .get();
+      if (!inventorySnapshot.empty) {
+        // Se elimina el registro del inventario
+        for (const doc of inventorySnapshot.docs) {
+          await doc.ref.delete();
+        }
+      }
+      // <-- FIN DEL NUEVO BLOQUE -->
+
       // Check if a wishlist entry already exists for the given combination (active or deleted)
       const existingSnapshot = await firestore
         .collection(documents.wishlist)
