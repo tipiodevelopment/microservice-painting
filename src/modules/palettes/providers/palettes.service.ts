@@ -132,6 +132,40 @@ export class PalettesService {
     return response;
   }
 
+  async getAllPalettesSimple(userId: string): Promise<ApiResponse> {
+    const response: ApiResponse = {
+      executed: true,
+      message: '',
+      data: null,
+    };
+
+    try {
+      const firestore = this.firebaseService.returnFirestore();
+      const snapshot = await firestore
+        .collection(documents.palettes)
+        .orderBy('name')
+        .where('userId', '==', userId)
+        .orderBy('userId')
+        .orderBy('created_at', 'desc')
+        .select('name')
+        .get();
+
+      const palettes = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          name: data.name,
+        };
+      });
+      response.data = palettes;
+    } catch (error) {
+      response.message = error.message;
+      response.executed = false;
+    } finally {
+      return response;
+    }
+  }
+
   async getPalettes(
     userId: string,
     limit: number,
