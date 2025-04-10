@@ -382,4 +382,19 @@ export class PaintController {
       executeError(error);
     }
   }
+
+  /**
+   * GET /paint/barcode/{barcode}
+   * Find the paints with specific barcode
+   */
+  @UseGuards(FirebaseAuthGuard)
+  @Get('/barcode/:barcode')
+  getByBarcode(@Req() req, @Param('barcode') barcode: string) {
+    try {
+      const currentUser = req.user;
+      return this._paintService.getByBarcode(currentUser.uid, barcode);
+    } catch (error) {
+      executeError(error);
+    }
+  }
 }

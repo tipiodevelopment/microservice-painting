@@ -68,6 +68,7 @@ export class InventoryService {
         .where('brand_id', '==', data.brand_id)
         .limit(1)
         .get();
+
       if (!querySnapshot.empty) {
         const doc = querySnapshot.docs[0];
         response.message = 'Inventory with this Paint already exist.';
@@ -99,6 +100,19 @@ export class InventoryService {
             ...body,
           };
         } else {
+        }
+      }
+
+      const inventorySnapshot = await firestore
+        .collection(documents.wishlist)
+        .where('user_id', '==', userId)
+        .where('brand_id', '==', data.brand_id)
+        .where('paint_id', '==', data.paint_id)
+        .limit(1)
+        .get();
+      if (!inventorySnapshot.empty) {
+        for (const doc of inventorySnapshot.docs) {
+          await doc.ref.delete();
         }
       }
     } catch (error) {

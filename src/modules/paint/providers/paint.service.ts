@@ -545,4 +545,78 @@ export class PaintService {
     }
     return response;
   }
+
+  async getByBarcode(userId: string, barcode: string): Promise<ApiResponse> {
+    const response: ApiResponse = { executed: true, message: '', data: [] };
+    try {
+      const firestore = await this.firebaseService.returnFirestore();
+      const snapshot = await firestore
+        .collectionGroup(documents.paints)
+        .where('barcode', '==', barcode)
+        .orderBy('name')
+        .limit(100)
+        .get();
+
+      if (!snapshot.empty) {
+        const responseBrands = await this.firebaseService.getCollection(
+          documents.brands,
+        );
+        const brands = responseBrands.data;
+        const paints = snapshot.docs.map((doc) => {
+          const brandId = doc.ref.parent.parent?.id;
+          const _paint = doc.data();
+          const brand = brands.find((b) => b.id == brandId)?.name;
+          return {
+            id: doc.id,
+            brand,
+            brandId,
+            ..._paint,
+            created_at: new Date(_paint?.created_at._seconds * 1000),
+            updated_at: new Date(_paint?.updated_at._seconds * 1000),
+            category: !_paint?.category ? '' : _paint.category,
+            isMetallic: !_paint?.isMetallic ? false : _paint.isMetallic,
+            isTransparent: !_paint?.isTransparent
+              ? false
+              : _paint.isTransparent,
+          };
+        });
+
+        const getPalettes = async (paint) => {
+          const palettes: any[] = [];
+          const ppSnapshot = await firestore
+            .collection(documents.palettes_paints)
+            .where('brand_id', '==', paint.brandId)
+            .where('paint_id', '==', paint.id)
+            .get();
+          for await (const ppDoc of ppSnapshot.docs) {
+            const ppData = ppDoc.data();
+            if (ppData.palette_id) {
+              const paletteDoc = await firestore
+                .doc(`${documents.palettes}/${ppData.palette_id}`)
+                .get();
+              if (paletteDoc.exists) {
+                const paletteData = paletteDoc.data();
+                if (paletteData.userId === userId) {
+                  palettes.push({
+                    created_at: paletteData.created_at,
+                    name: paletteData.name,
+                    userId: paletteData.userId,
+                  });
+                }
+              }
+            }
+          }
+          paint.palettes = palettes;
+        };
+
+        await Promise.all(paints.map(getPalettes));
+        response.data = paints;
+      }
+    } catch (error) {
+      response.executed = false;
+      response.message = error.message;
+    } finally {
+      return response;
+    }
+  }
 }
