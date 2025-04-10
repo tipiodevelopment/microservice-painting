@@ -105,7 +105,7 @@ export class WhiteListController {
   }
 
   @UseGuards(FirebaseAuthGuard)
-  @Get('/')
+  @Get('/search')
   @HttpCode(200)
   @ApiOperation({
     summary: 'Get user Wishlist with filters and sorting',
