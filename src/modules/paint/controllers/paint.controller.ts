@@ -382,4 +382,17 @@ export class PaintController {
       executeError(error);
     }
   }
+
+  /**
+   * GET /paint/barcode/{barcode}
+   * Find the paints with specific barcode
+   */
+  @Get('/barcode/:barcode')
+  getByBarcode(@Param('barcode') barcode: string) {
+    try {
+      return this._paintService.getByBarcode(barcode);
+    } catch (error) {
+      executeError(error);
+    }
+  }
 }
