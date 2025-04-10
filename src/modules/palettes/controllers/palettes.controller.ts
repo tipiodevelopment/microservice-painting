@@ -41,6 +41,22 @@ export class PalettesController {
       executeError(error);
     }
   }
+  /**
+   * GET /simple-list
+   * Retrieves all palettes in a simple list with name and id
+   */
+  @UseGuards(FirebaseAuthGuard)
+  @Get('/simple-list')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Get all palettes in simple list' })
+  async getAllPalettesSimple(@Req() req) {
+    try {
+      const currentUser = req.user;
+      return this._palettesService.getAllPalettesSimple(currentUser.uid);
+    } catch (error) {
+      executeError(error);
+    }
+  }
 
   /**
    * GET /palettes?limit=10&page=1
