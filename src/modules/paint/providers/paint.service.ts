@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { FirebaseService } from '../../firebase/firebase.service';
 import { ApiResponse } from '../../../utils/interfaces';
 import { documents } from '../../../utils/enums/documents.enum';
@@ -618,5 +622,74 @@ export class PaintService {
     } finally {
       return response;
     }
+  }
+
+  async getPaintStatus(
+    userId: string,
+    brandIdentifier: string,
+    paintId: string,
+  ): Promise<ApiResponse> {
+    const response: ApiResponse = { executed: true, message: '', data: null };
+    try {
+      const firestore = this.firebaseService.returnFirestore();
+
+      // Intentar obtener el documento de la marca usando el identificador como ID.
+      const brandDoc = await firestore
+        .collection(documents.brands)
+        .doc(brandIdentifier)
+        .get();
+      let realBrandId: string;
+      let brandData: any;
+      if (brandDoc.exists) {
+        brandData = brandDoc.data();
+        realBrandId = brandIdentifier;
+      } else {
+        // Si no se encontró, buscar un documento cuyo campo "name" coincida con el valor recibido.
+        const querySnap = await firestore
+          .collection(documents.brands)
+          .where('name', '==', brandIdentifier)
+          .limit(1)
+          .get();
+        if (querySnap.empty) {
+          throw new NotFoundException('Brand not found');
+        }
+        realBrandId = querySnap.docs[0].id;
+        brandData = querySnap.docs[0].data();
+      }
+
+      // Consultar en la colección de inventory.
+      const invQuery = await firestore
+        .collection(documents.inventory)
+        .where('user_id', '==', userId)
+        .where('brand_id', '==', realBrandId)
+        .where('paint_id', '==', paintId)
+        .limit(1)
+        .get();
+      const is_inventory = !invQuery.empty;
+
+      // Consultar en la colección de wishlist (solo activos: deleted == false).
+      const wlQuery = await firestore
+        .collection(documents.wishlist)
+        .where('user_id', '==', userId)
+        .where('brand_id', '==', realBrandId)
+        .where('paint_id', '==', paintId)
+        .where('deleted', '==', false)
+        .limit(1)
+        .get();
+      const is_wishlist = !wlQuery.empty;
+
+      response.data = {
+        paint_id: paintId,
+        brand_id: realBrandId,
+        brand_name: brandData?.name || null,
+        is_inventory,
+        is_wishlist,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(
+        `Error obtaining paint status: ${error.message}`,
+      );
+    }
+    return response;
   }
 }

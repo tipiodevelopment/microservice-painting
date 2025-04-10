@@ -397,4 +397,45 @@ export class PaintController {
       executeError(error);
     }
   }
+
+  @UseGuards(FirebaseAuthGuard)
+  @Get('/paint-status/:brand/:paintId')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Get paint status for user in palette context',
+    description:
+      'Checks if a given paint (specified by paintId) from a brand (provided as ID or name) is present in the user’s inventory and wishlist.',
+  })
+  @ApiHeader({
+    name: 'x-user-uid',
+    required: false,
+    description:
+      'Optional UID for local testing without Firebase tokens (NOT for production).',
+  })
+  @ApiParam({
+    name: 'brand',
+    description: 'Brand identifier (can be ID or brand name)',
+    example: 'Arteza',
+  })
+  @ApiParam({
+    name: 'paintId',
+    description: 'Identifier of the paint',
+    example: 'A001',
+  })
+  async getPaintStatus(
+    @Req() req,
+    @Param('brand') brand: string,
+    @Param('paintId') paintId: string,
+  ) {
+    try {
+      const currentUser = req.user;
+      return await this._paintService.getPaintStatus(
+        currentUser.uid,
+        brand,
+        paintId,
+      );
+    } catch (error) {
+      executeError(error);
+    }
+  }
 }
