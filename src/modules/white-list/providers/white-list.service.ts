@@ -358,4 +358,155 @@ export class WhiteListService {
 
     return { updated: true, newPriority: insertAt };
   }
+
+  async getUserWhiteListByFilters(
+    userId: string,
+    filters?: {
+      q?: string;
+      priority?: number;
+      brand_id?: string;
+      palette?: string;
+      sortBy?: 'created_at' | 'alphabetical';
+      direction?: 'asc' | 'desc';
+      limit?: number;
+      page?: number;
+    },
+  ): Promise<any> {
+    const firestore = this.firebaseService.returnFirestore();
+
+    // Validar que el usuario existe
+    const userDoc = await firestore
+      .collection(documents.users)
+      .doc(userId)
+      .get();
+    if (!userDoc.exists) {
+      throw new NotFoundException('User does not exist');
+    }
+
+    // Consulta base: obtener wishlist del usuario (activa)
+    const querySnap = await firestore
+      .collection(documents.wishlist)
+      .where('user_id', '==', userId)
+      .where('deleted', '==', false)
+      .orderBy('priority', 'desc')
+      .get();
+
+    // Recuperar datos y anexar información extendida
+    let results = [];
+    for (const doc of querySnap.docs) {
+      const data = doc.data();
+      // Validar existencia de paint y brand
+      const paintSnap = await firestore
+        .doc(`brands/${data.brand_id}/${documents.paints}/${data.paint_id}`)
+        .get();
+      const brandSnap = await firestore
+        .doc(`${documents.brands}/${data.brand_id}`)
+        .get();
+      // Si alguna no existe, omitir este registro
+      if (!paintSnap.exists || !brandSnap.exists) continue;
+
+      // Buscar paletas asociadas a este ítem: obtener nombres de las paletas donde aparece el ítem
+      const palettesPaintsSnap = await firestore
+        .collection('palettes_paints')
+        .where('paint_id', '==', data.paint_id)
+        .where('brand_id', '==', data.brand_id)
+        .get();
+
+      const paletteNames: string[] = [];
+      for (const ppDoc of palettesPaintsSnap.docs) {
+        const paletteData = ppDoc.data();
+        const paletteSnap = await firestore
+          .doc(`${documents.palettes}/${paletteData.palette_id}`)
+          .get();
+        if (paletteSnap.exists && paletteSnap.data()?.userId === userId) {
+          paletteNames.push(paletteSnap.data().name);
+        }
+      }
+
+      results.push({
+        id: doc.id,
+        paint_id: data.paint_id,
+        brand_id: data.brand_id,
+        type: data.type,
+        priority: data.priority,
+        created_at: data.created_at,
+        paint: paintSnap.data(),
+        brand: brandSnap.data(),
+        palettes: paletteNames,
+      });
+    }
+
+    // Aplicar filtros en memoria si se especifican
+    if (filters) {
+      // Filtro por prioridad
+      if (filters.priority !== undefined) {
+        results = results.filter((item) => item.priority === filters.priority);
+      }
+      // Filtro por marca
+      if (filters.brand_id) {
+        results = results.filter((item) => item.brand_id === filters.brand_id);
+      }
+      // Búsqueda textual (en nombre de pintura o de marca)
+      if (filters.q) {
+        const queryText = filters.q.toLowerCase();
+        results = results.filter((item) => {
+          const paintingName = item.paint?.name?.toLowerCase() || '';
+          const brandName = item.brand?.name?.toLowerCase() || '';
+          return (
+            paintingName.includes(queryText) || brandName.includes(queryText)
+          );
+        });
+      }
+      // Filtro por paleta: se busca el término en alguno de los nombres de las paletas asociadas
+      if (filters.palette) {
+        const paletteQuery = filters.palette.toLowerCase();
+        results = results.filter(
+          (item) =>
+            item.palettes &&
+            item.palettes.some((p: string) =>
+              p.toLowerCase().includes(paletteQuery),
+            ),
+        );
+      }
+      // Ordenamiento
+      if (filters.sortBy) {
+        if (filters.sortBy === 'created_at') {
+          results = results.sort((a, b) => {
+            const dateA = new Date(a.created_at);
+            const dateB = new Date(b.created_at);
+            return filters.direction === 'asc'
+              ? dateA.getTime() - dateB.getTime()
+              : dateB.getTime() - dateA.getTime();
+          });
+        } else if (filters.sortBy === 'alphabetical') {
+          results = results.sort((a, b) => {
+            const nameA = a.paint?.name?.toLowerCase() || '';
+            const nameB = b.paint?.name?.toLowerCase() || '';
+            if (nameA < nameB) return filters.direction === 'asc' ? -1 : 1;
+            if (nameA > nameB) return filters.direction === 'asc' ? 1 : -1;
+            return 0;
+          });
+        }
+      }
+    }
+
+    const totalItems = results.length;
+
+    // Aplicar paginación solo si se reciben los parámetros de limit y page
+    if (filters && filters.limit && filters.page) {
+      const limit = filters.limit;
+      const page = filters.page;
+      const startIndex = (page - 1) * limit;
+      results = results.slice(startIndex, startIndex + limit);
+      return {
+        userId,
+        totalItems,
+        totalPages: Math.ceil(totalItems / limit),
+        currentPage: page,
+        whitelist: results,
+      };
+    } else {
+      return { userId, totalItems, whitelist: results };
+    }
+  }
 }

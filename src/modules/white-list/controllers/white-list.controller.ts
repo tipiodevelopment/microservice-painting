@@ -9,6 +9,7 @@ import {
   Delete,
   Param,
   Patch,
+  Query,
 } from '@nestjs/common';
 import {
   ApiOperation,
@@ -16,6 +17,7 @@ import {
   ApiTags,
   ApiHeader,
   ApiBody,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { WhiteListService } from '../providers/white-list.service';
 import { executeError } from '../../../utils/error';
@@ -97,6 +99,100 @@ export class WhiteListController {
       };
 
       return this._whiteListService.getUserWhiteList(currentUser.uid);
+    } catch (error) {
+      executeError(error);
+    }
+  }
+
+  @UseGuards(FirebaseAuthGuard)
+  @Get('/')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Get user Wishlist with filters and sorting',
+    description:
+      'Returns the wishlist for the user, allowing optional text search (by painting or brand name), filtering by priority, brand, and palette, as well as ordering by creation date (created_at) or alphabetically (painting name). Pagination is also supported via the "limit" and "page" parameters.',
+  })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Wishlist filtered, sorted, and paginated (if parameters provided) successfully.',
+  })
+  @ApiHeader({
+    name: 'x-user-uid',
+    required: false,
+    description:
+      'Optional UID for local testing without Firebase tokens (NOT for production).',
+  })
+  @ApiQuery({
+    name: 'q',
+    required: false,
+    description:
+      'Search term to filter results by painting or brand name (case-insensitive).',
+    example: 'blue',
+  })
+  @ApiQuery({
+    name: 'priority',
+    required: false,
+    description: 'Filter items by priority (numeric value).',
+    example: 3,
+  })
+  @ApiQuery({
+    name: 'brand_id',
+    required: false,
+    description: 'Filter items by the brand ID.',
+    example: 'Arteza',
+  })
+  @ApiQuery({
+    name: 'palette',
+    required: false,
+    description:
+      'Filter items by the name of the palette associated with the wishlist item.',
+    example: 'My Palette',
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    description:
+      'Field to sort the results by. Use "created_at" for creation date or "alphabetical" for alphabetical order (using the painting name).',
+    example: 'created_at',
+  })
+  @ApiQuery({
+    name: 'direction',
+    required: false,
+    description:
+      'Sort direction: "asc" for ascending or "desc" for descending.',
+    example: 'desc',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of results per page for pagination (optional).',
+    example: 10,
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Page number for pagination (optional).',
+    example: 1,
+  })
+  async getUserWhiteListByFilters(@Req() req, @Query() query: any) {
+    try {
+      // Use the user from the request, or a default for testing purposes
+      const currentUser = req.user || { uid: 'sCTI275R8peTBIDQGYbXciyBNQh2' };
+      const filters = {
+        q: query.q,
+        priority: query.priority ? Number(query.priority) : undefined,
+        brand_id: query.brand_id,
+        palette: query.palette,
+        sortBy: query.sortBy, // can be 'created_at' or 'alphabetical'
+        direction: query.direction, // 'asc' or 'desc'
+        limit: query.limit ? Number(query.limit) : undefined,
+        page: query.page ? Number(query.page) : undefined,
+      };
+      return await this._whiteListService.getUserWhiteListByFilters(
+        currentUser.uid,
+        filters,
+      );
     } catch (error) {
       executeError(error);
     }
