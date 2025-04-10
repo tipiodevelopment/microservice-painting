@@ -546,7 +546,7 @@ export class PaintService {
     return response;
   }
 
-  async getByBarcode(barcode: string): Promise<ApiResponse> {
+  async getByBarcode(userId: string, barcode: string): Promise<ApiResponse> {
     const response: ApiResponse = { executed: true, message: '', data: [] };
     try {
       const firestore = await this.firebaseService.returnFirestore();
@@ -562,7 +562,7 @@ export class PaintService {
           documents.brands,
         );
         const brands = responseBrands.data;
-        response.data = snapshot.docs.map((doc) => {
+        const paints = snapshot.docs.map((doc) => {
           const brandId = doc.ref.parent.parent?.id;
           const _paint = doc.data();
           const brand = brands.find((b) => b.id == brandId)?.name;
@@ -580,6 +580,37 @@ export class PaintService {
               : _paint.isTransparent,
           };
         });
+
+        const getPalettes = async (paint) => {
+          const palettes: any[] = [];
+          const ppSnapshot = await firestore
+            .collection(documents.palettes_paints)
+            .where('brand_id', '==', paint.brandId)
+            .where('paint_id', '==', paint.id)
+            .get();
+          for await (const ppDoc of ppSnapshot.docs) {
+            const ppData = ppDoc.data();
+            if (ppData.palette_id) {
+              const paletteDoc = await firestore
+                .doc(`${documents.palettes}/${ppData.palette_id}`)
+                .get();
+              if (paletteDoc.exists) {
+                const paletteData = paletteDoc.data();
+                if (paletteData.userId === userId) {
+                  palettes.push({
+                    created_at: paletteData.created_at,
+                    name: paletteData.name,
+                    userId: paletteData.userId,
+                  });
+                }
+              }
+            }
+          }
+          paint.palettes = palettes;
+        };
+
+        await Promise.all(paints.map(getPalettes));
+        response.data = paints;
       }
     } catch (error) {
       response.executed = false;
