@@ -229,7 +229,22 @@ export class InventoryService {
     }
 
     if (filters.brand) {
-      query = query.where('brand', '==', filters.brand);
+      const brandSnap = await firestore
+        .collection(documents.brands)
+        .where('name', '==', filters.brand)
+        .limit(1)
+        .get();
+      if (brandSnap.empty) {
+        return {
+          currentPage: 1,
+          totalPaints: 0,
+          totalPages: 0,
+          limit,
+          inventories: [],
+        };
+      }
+      const brandId = brandSnap.docs[0].id;
+      query = query.where('brand_id', '==', brandId);
     }
 
     // 🔢 Paginación
