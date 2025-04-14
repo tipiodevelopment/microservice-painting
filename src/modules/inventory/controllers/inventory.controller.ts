@@ -140,33 +140,49 @@ export class InventoryController {
       'Optional UID for local testing without Firebase tokens (NOT for production).',
   })
   @ApiQuery({
+    name: 'brand',
+    required: false,
+    description: 'Brand name',
+    example: 'Vallejo',
+  })
+  @ApiQuery({
     name: 'brandId',
     required: false,
-    description: 'Filter items by the brand ID.',
-    example: 'Arteza',
+    description: 'Brand ID',
+    example: 'Vallejo',
   })
   @ApiQuery({
     name: 'stock',
     required: false,
-    description: 'Stock',
-    example: 2,
+    description: 'Exact stock',
+    example: 5,
   })
   @ApiQuery({
-    name: 'limit',
+    name: 'onlyInStock',
     required: false,
-    description: 'Limit',
-    example: 10,
+    description: 'Only items with quantity > 0',
+    example: true,
   })
   @ApiQuery({
-    name: 'page',
+    name: 'minStock',
     required: false,
-    description: 'Page',
+    description: 'Minimum stock',
     example: 1,
+  })
+  @ApiQuery({
+    name: 'maxStock',
+    required: false,
+    description: 'Maximum stock',
+    example: 10,
   })
   getInventories(
     @Req() req,
+    @Query('brand') brand?: string,
     @Query('brandId') brandId?: string,
     @Query('stock') stock?: number,
+    @Query('onlyInStock') onlyInStock?: boolean,
+    @Query('minStock') minStock?: number,
+    @Query('maxStock') maxStock?: number,
     @Query('limit') limit = 10,
     @Query('page') page: number = 1,
   ) {
@@ -176,7 +192,7 @@ export class InventoryController {
       };
       return this._inventoryService.getInventories(
         currentUser.uid,
-        { brandId, stock },
+        { brand, brandId, stock, onlyInStock, minStock, maxStock },
         Number(limit),
         page,
       );

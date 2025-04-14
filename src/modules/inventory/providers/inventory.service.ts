@@ -189,7 +189,14 @@ export class InventoryService {
 
   async getInventories(
     userId,
-    filters: { stock?: number; brandId?: string },
+    filters: {
+      brand?: string;
+      brandId?: string;
+      stock?: number;
+      onlyInStock?: boolean;
+      minStock?: number;
+      maxStock?: number;
+    },
     limit: number,
     page: number = 1,
   ) {
@@ -198,28 +205,42 @@ export class InventoryService {
 
     let query = firestore
       .collection(documents.inventory)
-      .where('user_id', '==', userId)
-      .orderBy('user_id');
+      .where('user_id', '==', userId);
 
-    if (filters?.stock) {
-      query = query.where('quantity', '==', Number(filters.stock));
+    // 🔍 Filtros
+    if (filters.stock !== undefined) {
+      query = query.where('quantity', '==', filters.stock);
     }
 
-    if (filters?.brandId) {
+    if (filters.onlyInStock) {
+      query = query.where('quantity', '>', 0);
+    }
+
+    if (filters.minStock !== undefined) {
+      query = query.where('quantity', '>=', filters.minStock);
+    }
+
+    if (filters.maxStock !== undefined) {
+      query = query.where('quantity', '<=', filters.maxStock);
+    }
+
+    if (filters.brandId) {
       query = query.where('brand_id', '==', filters.brandId);
     }
 
+    if (filters.brand) {
+      query = query.where('brand', '==', filters.brand);
+    }
+
+    // 🔢 Paginación
     const totalSnapshot = await query.get();
     const totalPaints = totalSnapshot.size;
-
     const totalPages = Math.ceil(totalPaints / limit);
-
     const currentPage = Math.min(Math.max(page, 1), totalPages);
-
     const startIndex = (currentPage - 1) * limit;
     let startAfterDoc = null;
 
-    if (startIndex > 0) {
+    if (startIndex > 0 && startIndex < totalSnapshot.docs.length) {
       startAfterDoc = totalSnapshot.docs[startIndex - 1];
     }
 
@@ -255,7 +276,7 @@ export class InventoryService {
         isTransparent: false,
       };
 
-      // Obtener nombres de paletas del usuario para esta pintura
+      // Paletas que contienen esta pintura
       const palettesPaintsSnap = await firestore
         .collection('palettes_paints')
         .where('paint_id', '==', inventory.paint_id)
