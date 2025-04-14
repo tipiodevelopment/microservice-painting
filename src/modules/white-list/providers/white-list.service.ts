@@ -15,76 +15,6 @@ export class WhiteListService {
     return { executed: true, message: 'OK', microservice: 'Painting' };
   }
 
-  async seedWhitelist(userId: string) {
-    const firestore = this.firebaseService.returnFirestore();
-    const now = new Date();
-
-    const paints = [
-      {
-        brand_id: 'AK',
-        paint_id: 'AK004',
-        type: 'favorite',
-        priority: 1,
-        deleted: false,
-      },
-      {
-        brand_id: 'AK',
-        paint_id: 'AK005',
-        type: 'wishlist',
-        priority: 2,
-        deleted: false,
-      },
-      {
-        brand_id: 'AppleBarrel',
-        paint_id: '20210',
-        type: 'favorite',
-        priority: null,
-        deleted: false,
-      },
-      {
-        brand_id: 'AppleBarrel',
-        paint_id: '20211',
-        type: 'wishlist',
-        priority: null,
-        deleted: false,
-      },
-      {
-        brand_id: 'Arteza',
-        paint_id: 'A001',
-        type: 'favorite',
-        priority: null,
-        deleted: false,
-      },
-      {
-        brand_id: 'Arteza',
-        paint_id: 'A002',
-        type: 'wishlist',
-        priority: null,
-        deleted: false,
-      },
-    ];
-
-    const inserted = [];
-
-    for (const paint of paints) {
-      const ref = firestore.collection(documents.wishlist).doc();
-
-      await ref.set({
-        user_id: userId,
-        paint_id: paint.paint_id,
-        brand_id: paint.brand_id,
-        type: paint.type,
-        priority: paint.priority,
-        created_at: now,
-        updated_at: now,
-      });
-
-      inserted.push({ id: ref.id, ...paint });
-    }
-
-    return { inserted: inserted.length, user_id: userId, items: inserted };
-  }
-
   async saveToWhiteList(
     userId: string,
     body: {
@@ -96,6 +26,10 @@ export class WhiteListService {
   ) {
     try {
       const firestore = this.firebaseService.returnFirestore();
+
+      if (body.priority < 0 || body.priority > 5) {
+        throw new Error('Priority must be between 0 and 5');
+      }
 
       // Validate that the user exists
       const userDoc = await firestore
@@ -142,7 +76,6 @@ export class WhiteListService {
           await doc.ref.delete();
         }
       }
-      // <-- FIN DEL NUEVO BLOQUE -->
 
       // Check if a wishlist entry already exists for the given combination (active or deleted)
       const existingSnapshot = await firestore
@@ -172,7 +105,7 @@ export class WhiteListService {
         }
       }
 
-      // If no entry exists, create a new one
+      // Create new wishlist entry
       const ref = firestore.collection(documents.wishlist).doc();
       await ref.set({
         user_id: userId,
@@ -196,7 +129,7 @@ export class WhiteListService {
   async getUserWhiteList(userId: string) {
     const firestore = this.firebaseService.returnFirestore();
 
-    // Validate that the user exists
+    // Validar que el usuario existe
     const userDoc = await firestore
       .collection(documents.users)
       .doc(userId)
@@ -205,11 +138,13 @@ export class WhiteListService {
       throw new NotFoundException('User does not exist');
     }
 
+    // Consulta ordenada por priority DESC y updated_at DESC
     const querySnap = await firestore
       .collection(documents.wishlist)
       .where('user_id', '==', userId)
       .where('deleted', '==', false)
       .orderBy('priority', 'desc')
+      .orderBy('updated_at', 'desc')
       .get();
 
     const results = [];
@@ -217,7 +152,6 @@ export class WhiteListService {
     for (const doc of querySnap.docs) {
       const data = doc.data();
 
-      // Validate that both the paint and the brand exist
       const paintSnap = await firestore
         .doc(`brands/${data.brand_id}/${documents.paints}/${data.paint_id}`)
         .get();
@@ -225,12 +159,10 @@ export class WhiteListService {
         .doc(`${documents.brands}/${data.brand_id}`)
         .get();
 
-      // Exclude legacy records if brand or paint do not exist
       if (!paintSnap.exists || !brandSnap.exists) {
         continue;
       }
 
-      // Look for palettes that contain this paint with this brand
       const palettesPaintsSnap = await firestore
         .collection('palettes_paints')
         .where('paint_id', '==', data.paint_id)
@@ -253,8 +185,9 @@ export class WhiteListService {
         paint_id: data.paint_id,
         brand_id: data.brand_id,
         type: data.type,
-        priority: data.priority,
+        priority: data.priority ?? 0,
         created_at: data.created_at,
+        updated_at: data.updated_at,
         paint: paintSnap.data(),
         brand: brandSnap.data(),
         palettes: paletteNames,
@@ -294,69 +227,16 @@ export class WhiteListService {
       throw new Error('Not found or unauthorized');
     }
 
-    // Obtener todos los ítems con prioridad
-    const priorityQuery = await firestore
-      .collection(documents.wishlist)
-      .where('user_id', '==', userId)
-      .where('priority', '!=', null)
-      .orderBy('priority')
-      .get();
-
-    let priorityItems = priorityQuery.docs.map((doc) => ({
-      id: doc.id,
-      priority: doc.data().priority,
-    }));
-
-    // Remover el ítem actual de la lista
-    priorityItems = priorityItems.filter((item) => item.id !== id);
-
-    if (updates.priority === -1) {
-      // Quitar prioridad
-      await ref.update({ priority: null, updated_at: new Date() });
-
-      // Reasignar prioridades (comprimir)
-      await Promise.all(
-        priorityItems.map((item, index) => {
-          return firestore
-            .collection(documents.wishlist)
-            .doc(item.id)
-            .update({
-              priority: index + 1,
-              updated_at: new Date(),
-            });
-        }),
-      );
-
-      return { updated: true, newPriority: null };
+    if (updates.priority < 0 || updates.priority > 5) {
+      throw new Error('Priority must be between 0 and 5');
     }
 
-    if (updates.priority === 0) {
-      // Agregar al final
-      const newPriority = priorityItems.length + 1;
-      priorityItems.push({ id, priority: newPriority });
+    await ref.update({
+      ...updates,
+      updated_at: new Date(),
+    });
 
-      await ref.update({ priority: newPriority, updated_at: new Date() });
-      return { updated: true, newPriority };
-    }
-
-    // Insertar en posición específica
-    const insertAt = updates.priority!;
-    priorityItems.splice(insertAt - 1, 0, { id, priority: insertAt });
-
-    // Reasignar todas las prioridades
-    await Promise.all(
-      priorityItems.map((item, index) => {
-        return firestore
-          .collection(documents.wishlist)
-          .doc(item.id)
-          .update({
-            priority: index + 1,
-            updated_at: new Date(),
-          });
-      }),
-    );
-
-    return { updated: true, newPriority: insertAt };
+    return { updated: true, newPriority: updates.priority ?? null };
   }
 
   async getUserWhiteListByFilters(
@@ -383,29 +263,27 @@ export class WhiteListService {
       throw new NotFoundException('User does not exist');
     }
 
-    // Consulta base: obtener wishlist del usuario (activa)
+    // Consulta base con orden por priority y updated_at
     const querySnap = await firestore
       .collection(documents.wishlist)
       .where('user_id', '==', userId)
       .where('deleted', '==', false)
       .orderBy('priority', 'desc')
+      .orderBy('updated_at', 'desc') // aseguramos orden por fecha secundaria
       .get();
 
-    // Recuperar datos y anexar información extendida
     let results = [];
     for (const doc of querySnap.docs) {
       const data = doc.data();
-      // Validar existencia de paint y brand
       const paintSnap = await firestore
         .doc(`brands/${data.brand_id}/${documents.paints}/${data.paint_id}`)
         .get();
       const brandSnap = await firestore
         .doc(`${documents.brands}/${data.brand_id}`)
         .get();
-      // Si alguna no existe, omitir este registro
+
       if (!paintSnap.exists || !brandSnap.exists) continue;
 
-      // Buscar paletas asociadas a este ítem: obtener nombres de las paletas donde aparece el ítem
       const palettesPaintsSnap = await firestore
         .collection('palettes_paints')
         .where('paint_id', '==', data.paint_id)
@@ -428,25 +306,23 @@ export class WhiteListService {
         paint_id: data.paint_id,
         brand_id: data.brand_id,
         type: data.type,
-        priority: data.priority,
+        priority: data.priority ?? 0,
         created_at: data.created_at,
+        updated_at: data.updated_at,
         paint: paintSnap.data(),
         brand: brandSnap.data(),
         palettes: paletteNames,
       });
     }
 
-    // Aplicar filtros en memoria si se especifican
+    // Aplicar filtros en memoria
     if (filters) {
-      // Filtro por prioridad
       if (filters.priority !== undefined) {
         results = results.filter((item) => item.priority === filters.priority);
       }
-      // Filtro por marca
       if (filters.brand_id) {
         results = results.filter((item) => item.brand_id === filters.brand_id);
       }
-      // Búsqueda textual (en nombre de pintura o de marca)
       if (filters.q) {
         const queryText = filters.q.toLowerCase();
         results = results.filter((item) => {
@@ -457,7 +333,6 @@ export class WhiteListService {
           );
         });
       }
-      // Filtro por paleta: se busca el término en alguno de los nombres de las paletas asociadas
       if (filters.palette) {
         const paletteQuery = filters.palette.toLowerCase();
         results = results.filter(
@@ -468,7 +343,8 @@ export class WhiteListService {
             ),
         );
       }
-      // Ordenamiento
+
+      // Ordenamiento adicional solo si se especifica sortBy
       if (filters.sortBy) {
         if (filters.sortBy === 'created_at') {
           results = results.sort((a, b) => {
@@ -492,8 +368,8 @@ export class WhiteListService {
 
     const totalItems = results.length;
 
-    // Aplicar paginación solo si se reciben los parámetros de limit y page
-    if (filters && filters.limit && filters.page) {
+    // Paginación
+    if (filters?.limit && filters?.page) {
       const limit = filters.limit;
       const page = filters.page;
       const startIndex = (page - 1) * limit;
@@ -505,8 +381,8 @@ export class WhiteListService {
         currentPage: page,
         whitelist: results,
       };
-    } else {
-      return { userId, totalItems, whitelist: results };
     }
+
+    return { userId, totalItems, whitelist: results };
   }
 }
