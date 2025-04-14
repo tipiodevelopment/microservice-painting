@@ -175,6 +175,18 @@ export class InventoryController {
     description: 'Maximum stock',
     example: 10,
   })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Limit',
+    example: 10,
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Page',
+    example: 1,
+  })
   getInventories(
     @Req() req,
     @Query('brand') brand?: string,
