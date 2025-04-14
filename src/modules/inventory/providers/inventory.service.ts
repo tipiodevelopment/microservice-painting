@@ -195,6 +195,7 @@ export class InventoryService {
   ) {
     console.log('getInventories filters:', filters);
     const firestore = this.firebaseService.returnFirestore();
+
     let query = firestore
       .collection(documents.inventory)
       .where('user_id', '==', userId)
@@ -242,6 +243,7 @@ export class InventoryService {
       );
       const paintSnapshot = await paintRef.get();
       const _data = paintSnapshot.data();
+
       inventory.paint = {
         ..._data,
         created_at: new Date(_data?.created_at._seconds * 1000),
@@ -251,9 +253,33 @@ export class InventoryService {
         isMetallic: false,
         isTransparent: false,
       };
+
+      // Obtener nombres de paletas del usuario para esta pintura
+      const palettesPaintsSnap = await firestore
+        .collection('palettes_paints')
+        .where('paint_id', '==', inventory.paint_id)
+        .where('brand_id', '==', inventory.brand_id)
+        .get();
+
+      const paletteNames: string[] = [];
+
+      for (const doc of palettesPaintsSnap.docs) {
+        const paletteData = doc.data();
+        const paletteSnap = await firestore
+          .collection(documents.palettes)
+          .doc(paletteData.palette_id)
+          .get();
+
+        if (paletteSnap.exists && paletteSnap.data()?.userId === userId) {
+          paletteNames.push(paletteSnap.data().name);
+        }
+      }
+
+      inventory.palettes = paletteNames;
     };
 
     await Promise.all(inventories.map(getPaint));
+
     return {
       currentPage,
       totalPaints,
