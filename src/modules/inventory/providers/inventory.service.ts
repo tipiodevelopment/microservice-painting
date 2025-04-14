@@ -188,7 +188,7 @@ export class InventoryService {
   async getInventory() {}
 
   async getInventories(
-    userId,
+    userId: string,
     filters: {
       brand?: string;
       brandId?: string;
@@ -207,7 +207,7 @@ export class InventoryService {
       .collection(documents.inventory)
       .where('user_id', '==', userId);
 
-    // 🔍 Filtros
+    // ✅ Aplicación de filtros (sin else)
     if (filters.stock !== undefined) {
       query = query.where('quantity', '==', filters.stock);
     }
@@ -234,6 +234,7 @@ export class InventoryService {
 
     // 🔢 Paginación
     const totalSnapshot = await query.get();
+
     const totalPaints = totalSnapshot.size;
     const totalPages = Math.ceil(totalPaints / limit);
     const currentPage = Math.min(Math.max(page, 1), totalPages);
@@ -259,6 +260,7 @@ export class InventoryService {
       };
     });
 
+    // 🔁 Enriquecer con datos de paint y paletas
     const getPaint = async (inventory) => {
       const paintRef = firestore.doc(
         `brands/${inventory.brand_id}/paints/${inventory.paint_id}`,
@@ -276,7 +278,7 @@ export class InventoryService {
         isTransparent: false,
       };
 
-      // Paletas que contienen esta pintura
+      // Paletas relacionadas con esta pintura del usuario
       const palettesPaintsSnap = await firestore
         .collection('palettes_paints')
         .where('paint_id', '==', inventory.paint_id)

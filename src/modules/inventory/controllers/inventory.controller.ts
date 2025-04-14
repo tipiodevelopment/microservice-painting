@@ -204,7 +204,14 @@ export class InventoryController {
       };
       return this._inventoryService.getInventories(
         currentUser.uid,
-        { brand, brandId, stock, onlyInStock, minStock, maxStock },
+        {
+          brand,
+          brandId,
+          stock: stock !== undefined ? Number(stock) : undefined,
+          onlyInStock,
+          minStock: minStock !== undefined ? Number(minStock) : undefined,
+          maxStock: maxStock !== undefined ? Number(maxStock) : undefined,
+        },
         Number(limit),
         page,
       );
