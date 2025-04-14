@@ -211,6 +211,7 @@ export class InventoryService {
 
     const totalSnapshot = await query.get();
     const totalPaints = totalSnapshot.size;
+
     const totalPages = Math.ceil(totalPaints / limit);
 
     const currentPage = Math.min(Math.max(page, 1), totalPages);

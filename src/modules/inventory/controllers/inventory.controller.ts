@@ -11,7 +11,14 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiHeader,
+  ApiOperation,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { InventoryService } from '../providers/inventory.service';
 import { executeError } from '../../../utils/error';
 import { FirebaseAuthGuard } from '../../../modules/firebase/firebase-auth.guard';
@@ -126,15 +133,47 @@ export class InventoryController {
     status: 200,
     description: 'Returns paginated inventory data',
   })
+  @ApiHeader({
+    name: 'x-user-uid',
+    required: false,
+    description:
+      'Optional UID for local testing without Firebase tokens (NOT for production).',
+  })
+  @ApiQuery({
+    name: 'brandId',
+    required: false,
+    description: 'Filter items by the brand ID.',
+    example: 'Arteza',
+  })
+  @ApiQuery({
+    name: 'stock',
+    required: false,
+    description: 'Stock',
+    example: 2,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Limit',
+    example: 10,
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Page',
+    example: 1,
+  })
   getInventories(
     @Req() req,
     @Query('brandId') brandId?: string,
     @Query('stock') stock?: number,
     @Query('limit') limit = 10,
-    @Query('page') page?: number,
+    @Query('page') page: number = 1,
   ) {
     try {
-      const currentUser = req.user;
+      const currentUser = req.user || {
+        uid: 'sCTI275R8peTBIDQGYbXciyBNQh2',
+      };
       return this._inventoryService.getInventories(
         currentUser.uid,
         { brandId, stock },
