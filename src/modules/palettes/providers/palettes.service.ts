@@ -307,6 +307,8 @@ export class PalettesService {
               matchPercentage: 0,
               paintColorHex: pp.paint.hex ?? '',
               paintBrandId: pp.brand_id ?? '',
+              paintCode: pp.paint.code ?? '',
+              paintBarcode: pp.paint.barcode ?? '',
             };
             paintSelections.push(ps);
           });
