@@ -178,6 +178,13 @@ export class PalettesService {
     };
     try {
       const firestore = this.firebaseService.returnFirestore();
+      const brandsRef = firestore.collection(documents.brands);
+      const brandsSnapshot = await brandsRef.get();
+      const brands = brandsSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
       let query = firestore
         .collection(documents.palettes)
         .orderBy('name')
@@ -244,6 +251,7 @@ export class PalettesService {
           if (paintDoc.exists) {
             const _data = paintDoc.data();
             paint = {
+              id: palette_paints.paint_id,
               ..._data,
               created_at: new Date(_data?.created_at._seconds * 1000),
               updated_at: new Date(_data?.updated_at._seconds * 1000),
@@ -276,6 +284,7 @@ export class PalettesService {
         await Promise.all(palette.palettes_paints.map(getPaint));
 
         let image = null;
+        const paintSelections = [];
         if (palette.palettes_paints.length > 0) {
           if (
             palette.palettes_paints.filter((pp) => pp.image_color_picks != null)
@@ -285,7 +294,24 @@ export class PalettesService {
               (pp) => pp.image_color_picks != null,
             )[0].image_color_picks.image_path;
           }
+
+          palette.palettes_paints.forEach((pp) => {
+            const brand: any = brands.find((b) => b.id == pp.brand_id);
+            console.log(pp.paint);
+            const ps = {
+              colorHex: pp.paint.hex ?? '',
+              paintId: pp.paint_id ?? '',
+              paintName: pp.paint.name ?? '',
+              paintBrand: brand?.name ? brand.name : '',
+              brandAvatar: brand?.logo_url ? brand.logo_url : '',
+              matchPercentage: 0,
+              paintColorHex: pp.paint.hex ?? '',
+              paintBrandId: pp.brand_id ?? '',
+            };
+            paintSelections.push(ps);
+          });
         }
+        palette.PaintSelections = paintSelections;
         palette.image = image;
         palette.total_paints = palette.palettes_paints.length;
         palette.created_at_text = moment(palette.created_at).fromNow();
