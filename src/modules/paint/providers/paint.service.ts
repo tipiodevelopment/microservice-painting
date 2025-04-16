@@ -542,6 +542,8 @@ export class PaintService {
         in_inventory: inInventory,
         in_whitelist: inWhitelist,
         palettes, // Listado de paletas en las que se utiliza la pintura.
+        inventory_id: inInventory ? invQuery.docs[0].id : '',
+        wishlist_id: inWhitelist ? wlQuery.docs[0].id : '',
       };
     } catch (error) {
       response.executed = false;
