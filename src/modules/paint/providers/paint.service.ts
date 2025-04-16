@@ -684,6 +684,8 @@ export class PaintService {
         brand_name: brandData?.name || null,
         is_inventory,
         is_wishlist,
+        inventory_id: is_inventory ? invQuery.docs[0].id : '',
+        wishlist_id: is_wishlist ? wlQuery.docs[0].id : '',
       };
     } catch (error) {
       throw new InternalServerErrorException(
