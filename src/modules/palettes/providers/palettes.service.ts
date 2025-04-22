@@ -24,90 +24,126 @@ export class PalettesService {
         .collection(documents.palettes)
         .where('userId', '==', userId)
         .get();
-      const paletteIds: string[] = palettesSnapshot.docs.map((doc) => doc.id);
+      const paletteInfoMap = new Map<
+        string,
+        { name: string; created_at: Date }
+      >();
+      const paletteIds: string[] = [];
+      palettesSnapshot.docs.forEach((doc) => {
+        const data = doc.data();
+        paletteIds.push(doc.id);
+        paletteInfoMap.set(doc.id, {
+          name: data.name,
+          // Ajusta esto según tu campo real en Firestore
+          created_at: data.created_at.toDate
+            ? data.created_at.toDate()
+            : new Date(data.created_at),
+        });
+      });
 
-      // 2. Obtener todos los documentos de "palettes_paints" asociados a las paletas del usuario.
-      const allPalettePaints: any[] = [];
+      // 2. Obtener todos los documents de "palettes_paints" de esas paletas.
+      const allPalettePaints: Array<{
+        palette_id: string;
+        brand_id: string;
+        paint_id: string;
+      }> = [];
       if (paletteIds.length > 0) {
-        const chunkSize = 10; // debido al límite en la cláusula "in"
+        const chunkSize = 10;
         for (let i = 0; i < paletteIds.length; i += chunkSize) {
           const chunk = paletteIds.slice(i, i + chunkSize);
-          const palettePaintsQuery = await firestore
+          const snap = await firestore
             .collection(documents.palettes_paints)
             .where('palette_id', 'in', chunk)
             .get();
-          allPalettePaints.push(
-            ...palettePaintsQuery.docs.map((doc) => doc.data()),
-          );
+          snap.docs.forEach((d) => {
+            const dData = d.data();
+            allPalettePaints.push({
+              palette_id: dData.palette_id,
+              brand_id: dData.brand_id,
+              paint_id: dData.paint_id,
+            });
+          });
         }
       }
 
-      // 3. Contar las ocurrencias de cada pintura, agrupando por brand_id y paint_id.
-      const usageMap = new Map<
-        string,
-        { count: number; brand_id: string; paint_id: string }
-      >();
-      allPalettePaints.forEach((item: any) => {
+      // 3. Contar y agrupar, acumulando también lista de paletas.
+      type Usage = {
+        count: number;
+        brand_id: string;
+        paint_id: string;
+        paletteIds: Set<string>;
+      };
+      const usageMap = new Map<string, Usage>();
+      allPalettePaints.forEach((item) => {
         const key = `${item.brand_id}_${item.paint_id}`;
-        if (usageMap.has(key)) {
-          const existing = usageMap.get(key)!;
-          existing.count++;
-        } else {
+        if (!usageMap.has(key)) {
           usageMap.set(key, {
-            count: 1,
+            count: 0,
             brand_id: item.brand_id,
             paint_id: item.paint_id,
+            paletteIds: new Set(),
           });
         }
+        const u = usageMap.get(key)!;
+        u.count++;
+        u.paletteIds.add(item.palette_id);
       });
 
-      // 4. Consultar el inventario del usuario.
+      // 4. Inventario: map key -> doc.id
       const invSnapshot = await firestore
         .collection(documents.inventory)
         .where('user_id', '==', userId)
         .get();
-      const inventoryMap = new Map<string, boolean>();
+      const inventoryMap = new Map<string, string>();
       invSnapshot.docs.forEach((doc) => {
-        const data = doc.data();
-        const key = `${data.brand_id}_${data.paint_id}`;
-        inventoryMap.set(key, true);
+        const d = doc.data();
+        const key = `${d.brand_id}_${d.paint_id}`;
+        inventoryMap.set(key, doc.id);
       });
 
-      // 5. Consultar la wishlist del usuario (sólo registros activos).
+      // 5. Wishlist: map key -> doc.id
       const wlSnapshot = await firestore
         .collection(documents.wishlist)
         .where('user_id', '==', userId)
         .where('deleted', '==', false)
         .get();
-      const whitelistMap = new Map<string, boolean>();
+      const wishlistMap = new Map<string, string>();
       wlSnapshot.docs.forEach((doc) => {
-        const data = doc.data();
-        const key = `${data.brand_id}_${data.paint_id}`;
-        whitelistMap.set(key, true);
+        const d = doc.data();
+        const key = `${d.brand_id}_${d.paint_id}`;
+        wishlistMap.set(key, doc.id);
       });
 
-      // 6. Armar el arreglo de resultados base.
-      const aggregated: any[] = [];
-      usageMap.forEach((value, key) => {
-        aggregated.push({
-          brand_id: value.brand_id,
-          paint_id: value.paint_id,
-          count: value.count,
-          in_inventory: inventoryMap.has(key),
-          in_whitelist: whitelistMap.has(key),
+      // 6. Armado de resultados base
+      const aggregated = Array.from(usageMap.values()).map((u) => {
+        const key = `${u.brand_id}_${u.paint_id}`;
+        // convertir paletteIds a array de objetos con nombre y fecha
+        const palettes = Array.from(u.paletteIds).map((pid) => {
+          const info = paletteInfoMap.get(pid)!;
+          return {
+            id: pid,
+            name: info.name,
+            created_at: info.created_at,
+          };
         });
+        return {
+          brand_id: u.brand_id,
+          paint_id: u.paint_id,
+          count: u.count,
+          palette_info: palettes,
+          inventory_id: inventoryMap.get(key) || null,
+          wishlist_id: wishlistMap.get(key) || null,
+        };
       });
 
-      // 7. Para cada elemento, obtener la información completa del paint y de la marca.
+      // 7. Para cada item, añadimos datos de paint y brand en paralelo
       const results = await Promise.all(
         aggregated.map(async (item) => {
-          // Obtener la info de la pintura (asumida en la ruta: brands/<brand_id>/paints/<paint_id>)
           const paintDoc = await firestore
             .doc(`${documents.brands}/${item.brand_id}/paints/${item.paint_id}`)
             .get();
           const paintData = paintDoc.exists ? paintDoc.data() : null;
 
-          // Obtener la info de la marca (asumida en la colección de brands)
           const brandDoc = await firestore
             .doc(`${documents.brands}/${item.brand_id}`)
             .get();
@@ -121,7 +157,7 @@ export class PalettesService {
         }),
       );
 
-      // 8. Ordenar el resultado de mayor a menor según la cantidad (count)
+      // 8. Ordenar por uso descendente
       results.sort((a, b) => b.count - a.count);
 
       response.data = results;
