@@ -214,6 +214,26 @@ export class PaintController {
   }
 
   /**
+   * GET /paint/category
+   * Find all categories
+   */
+  @Get('/category')
+  @ApiOperation({
+    summary: 'Get all categories',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Get all categories',
+  })
+  getCategories() {
+    try {
+      return this._paintService.getCategories();
+    } catch (error) {
+      executeError(error);
+    }
+  }
+
+  /**
    * GET /paint/:brandId
    * Retrieves paints from a specific brand with optional filters.
    */
@@ -434,6 +454,31 @@ export class PaintController {
         brand,
         paintId,
       );
+    } catch (error) {
+      executeError(error);
+    }
+  }
+
+  /**
+   * GET /process/category/add-or-update
+   * This process add the category field to all paints
+   */
+  @Get('/process/category/add-or-update')
+  processCategoryPaints() {
+    try {
+      return this._paintService.processCategoryPaints();
+    } catch (error) {
+      executeError(error);
+    }
+  }
+
+  /**
+   * GET /process/category/create
+   */
+  @Get('/process/category/create')
+  processCategoryCreate() {
+    try {
+      return this._paintService.processCategoryCreate();
     } catch (error) {
       executeError(error);
     }

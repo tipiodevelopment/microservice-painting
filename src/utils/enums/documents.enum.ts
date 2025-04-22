@@ -10,4 +10,5 @@ export enum documents {
   palettes_paints = 'palettes_paints',
   wishlist = 'wishlist',
   inventory = 'inventory',
+  category = 'category',
 }

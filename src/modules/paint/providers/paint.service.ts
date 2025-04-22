@@ -696,4 +696,192 @@ export class PaintService {
     }
     return response;
   }
+
+  async getCategories(): Promise<ApiResponse> {
+    const response: ApiResponse = { executed: true, message: '', data: [] };
+    try {
+      const categoryResponse = await this.firebaseService.getCollection(
+        documents.category,
+      );
+      const categories = categoryResponse.data;
+      response.data = categories.map((c) => {
+        return {
+          ...c,
+          created_at: new Date(c?.created_at._seconds * 1000),
+          updated_at: new Date(c?.updated_at._seconds * 1000),
+        };
+      });
+    } catch (error) {
+      response.message = error.message;
+      response.executed = false;
+    } finally {
+      return response;
+    }
+  }
+
+  async processCategoryPaints() {
+    console.log(`processCategoryPaints`);
+    const mapCategorys = [
+      'Effects',
+      'Effect',
+      'Acrylics',
+      'Acrylic',
+      'Base',
+      'Contrast',
+      'Layer',
+      'Shade',
+      'Dry',
+      'Technical',
+      'Air',
+      'Spray',
+      'Sprays',
+      'Metallics',
+      'Metallic',
+      'Metal',
+      'Transparent',
+    ];
+    console.log(`------------------------`);
+    console.log(`Getting Paints...`);
+    const firestore = this.firebaseService.returnFirestore();
+    const snapshot = await firestore.collectionGroup(documents.paints).get();
+    console.log(`Paints on memory Ok`);
+    console.log(`------------------------`);
+    console.log(`Categories processing...`);
+    const paints = snapshot.docs.map((doc) => {
+      const brandId = doc.ref.parent.parent?.id;
+      const _paint = doc.data();
+
+      const setWords1 = _paint.set?.toLowerCase().split(/\s+/) ?? [];
+
+      const matchedCategories = mapCategorys.filter((category) =>
+        setWords1.includes(category.toLowerCase()),
+      );
+
+      let category = '';
+      let isMetallic = false;
+      let isTransparent = false;
+      if (matchedCategories.length == 0) {
+        category = _paint.set;
+      } else {
+        category = matchedCategories[0];
+        if (
+          matchedCategories.filter(
+            (mc) => mc == 'Metallics' || mc == 'Metallic' || mc == 'Metal',
+          ).length > 0
+        ) {
+          category = 'Metallics';
+          isMetallic = true;
+        }
+        if (
+          matchedCategories.filter((mc) => mc == 'Spray' || mc == 'Sprays')
+            .length > 0
+        ) {
+          category = 'Spray';
+        }
+        if (
+          matchedCategories.filter((mc) => mc == 'Acrylics' || mc == 'Acrylic')
+            .length > 0
+        ) {
+          category = 'Acrylics';
+        }
+        if (matchedCategories.filter((mc) => mc == 'Transparent').length > 0) {
+          isTransparent = true;
+        }
+      }
+
+      return {
+        id: doc.id,
+        category,
+        isMetallic,
+        isTransparent,
+        brandId,
+        ..._paint,
+      };
+    });
+    console.log(`Categories OK`);
+    console.log(`------------------------`);
+
+    const BATCH_SIZE = 200;
+
+    const updateData = async (paint) => {
+      const firestore = this.firebaseService.returnFirestore();
+      const paintRef = firestore.doc(
+        `brands/${paint.brandId}/paints/${paint.id}`,
+      );
+      await paintRef.update({
+        category: paint.category,
+        isMetallic: paint.isMetallic,
+        isTransparent: paint.isTransparent,
+      });
+    };
+
+    for (let i = 0; i < paints.length; i += BATCH_SIZE) {
+      console.log(`Updating`, i, 'To', i + BATCH_SIZE, '...');
+      const batch = paints.slice(i, i + BATCH_SIZE);
+      await Promise.all(batch.map(updateData));
+      console.log(`------------------------`);
+    }
+    console.log(`END`);
+    return paints;
+  }
+
+  async processCategoryCreate() {
+    console.log(`processCategoryCreate`);
+    console.log(`------------------------`);
+    console.log(`Getting Paints...`);
+    const firestore = this.firebaseService.returnFirestore();
+    const snapshot = await firestore.collectionGroup(documents.paints).get();
+    console.log(`Paints on memory Ok`);
+    console.log(`------------------------`);
+    console.log(`Categories processing...`);
+    const paints = snapshot.docs.map((doc) => {
+      const brandId = doc.ref.parent.parent?.id;
+      const _paint = doc.data();
+      return {
+        id: doc.id,
+        brandId,
+        ..._paint,
+      };
+    });
+    console.log(`Categories OK`);
+    console.log(`------------------------`);
+
+    const groupedBySet = paints.reduce((acc, item: any) => {
+      const setName = item.category || 'Sin set';
+      acc[setName] = (acc[setName] || 0) + 1;
+      return acc;
+    }, {});
+
+    const keys = Object.keys(groupedBySet);
+
+    const processCategory = async (category) => {
+      const querySnapshot = await firestore
+        .collection(documents.category)
+        .where('name', '==', category)
+        .limit(1)
+        .get();
+
+      if (querySnapshot.empty) {
+        const currentDate = new Date();
+
+        const collectionRef = firestore.collection(documents.category);
+        const docRef = collectionRef.doc();
+
+        const dataWithId = {
+          name: category,
+          created_at: currentDate,
+          updated_at: currentDate,
+          id: docRef.id,
+        };
+
+        await docRef.set(dataWithId);
+        console.log('Category created!!!');
+      } else {
+        console.log('Category exist.');
+      }
+    };
+
+    await Promise.all(keys.map(processCategory));
+    return keys;
+  }
 }
