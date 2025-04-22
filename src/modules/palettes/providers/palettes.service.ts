@@ -131,6 +131,8 @@ export class PalettesService {
           paint_id: u.paint_id,
           count: u.count,
           palette_info: palettes,
+          in_inventory: inventoryMap.has(key),
+          in_whitelist: wishlistMap.has(key),
           inventory_id: inventoryMap.get(key) || null,
           wishlist_id: wishlistMap.get(key) || null,
         };
