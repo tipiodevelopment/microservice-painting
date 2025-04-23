@@ -94,6 +94,7 @@ export class PaintController {
     example: 1,
   })
   getAllPaints(
+    @Query('category') category?: string,
     @Query('brandId') brandId?: string,
     @Query('name') name?: string,
     @Query('code') code?: string,
@@ -104,7 +105,7 @@ export class PaintController {
   ) {
     try {
       return this._paintService.getAllPaints(
-        { name, code, hex, brandId },
+        { name, code, hex, brandId, category },
         Number(limit),
         page,
         sort,

@@ -75,7 +75,13 @@ export class PaintService {
   }
 
   async getAllPaints(
-    filters: { name?: string; code?: string; hex?: string; brandId?: string },
+    filters: {
+      name?: string;
+      code?: string;
+      hex?: string;
+      brandId?: string;
+      category?: string;
+    },
     limit: number,
     page: number = 1,
     sort: 'asc' | 'desc' = 'asc',
@@ -110,6 +116,9 @@ export class PaintService {
     }
     if (filters.hex) {
       query = query.where('hex', '==', filters.hex);
+    }
+    if (filters?.category) {
+      query = query.where('category', '==', filters.category);
     }
 
     const totalSnapshot = await query.get();
