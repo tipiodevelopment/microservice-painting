@@ -497,7 +497,7 @@ export class PalettesService {
           image_color_picks_ids,
         );
 
-        if (imageColorPicksResponse.data.length > 0) {
+        if (imageColorPicksResponse.data?.length > 0) {
           const image_color_picks = imageColorPicksResponse.data;
           // DELETE IMAGE
           {
