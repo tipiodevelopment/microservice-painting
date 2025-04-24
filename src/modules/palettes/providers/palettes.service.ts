@@ -225,9 +225,7 @@ export class PalettesService {
 
       let query = firestore
         .collection(documents.palettes)
-        .orderBy('name')
         .where('userId', '==', userId)
-        .orderBy('userId')
         .orderBy('created_at', 'desc');
 
       const totalSnapshot = await query.get();
@@ -240,7 +238,7 @@ export class PalettesService {
       let startAfterDoc = null;
 
       if (startIndex > 0) {
-        startAfterDoc = totalSnapshot.docs[startIndex - 1]; // Documento para hacer `startAfter`
+        startAfterDoc = totalSnapshot.docs[startIndex - 1];
       }
 
       if (startAfterDoc) {
