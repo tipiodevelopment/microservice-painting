@@ -108,6 +108,7 @@ export class ImageController {
       if (currentUser) {
         uid = currentUser.uid;
       }
+      console.log('uploadFile uid', uid);
       const url = await this._imageService.uploadFile(uid, file);
       return { url };
     } catch (error) {
