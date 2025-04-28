@@ -596,35 +596,41 @@ export class PaintService {
           };
         });
 
-        const getPalettes = async (paint) => {
-          const palettes: any[] = [];
-          const ppSnapshot = await firestore
-            .collection(documents.palettes_paints)
-            .where('brand_id', '==', paint.brandId)
-            .where('paint_id', '==', paint.id)
-            .get();
-          for await (const ppDoc of ppSnapshot.docs) {
-            const ppData = ppDoc.data();
-            if (ppData.palette_id) {
-              const paletteDoc = await firestore
-                .doc(`${documents.palettes}/${ppData.palette_id}`)
-                .get();
-              if (paletteDoc.exists) {
-                const paletteData = paletteDoc.data();
-                if (paletteData.userId === userId) {
-                  palettes.push({
-                    created_at: paletteData.created_at,
-                    name: paletteData.name,
-                    userId: paletteData.userId,
-                  });
+        if (userId != '') {
+          const getPalettes = async (paint) => {
+            const palettes: any[] = [];
+            const ppSnapshot = await firestore
+              .collection(documents.palettes_paints)
+              .where('brand_id', '==', paint.brandId)
+              .where('paint_id', '==', paint.id)
+              .get();
+            for await (const ppDoc of ppSnapshot.docs) {
+              const ppData = ppDoc.data();
+              if (ppData.palette_id) {
+                const paletteDoc = await firestore
+                  .doc(`${documents.palettes}/${ppData.palette_id}`)
+                  .get();
+                if (paletteDoc.exists) {
+                  const paletteData = paletteDoc.data();
+                  if (paletteData.userId === userId) {
+                    palettes.push({
+                      created_at: paletteData.created_at,
+                      name: paletteData.name,
+                      userId: paletteData.userId,
+                    });
+                  }
                 }
               }
             }
-          }
-          paint.palettes = palettes;
-        };
+            paint.palettes = palettes;
+          };
+          await Promise.all(paints.map(getPalettes));
+        } else {
+          paints.forEach((paint: any) => {
+            paint.palettes = [];
+          });
+        }
 
-        await Promise.all(paints.map(getPalettes));
         response.data = paints;
       }
     } catch (error) {
