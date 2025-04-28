@@ -70,7 +70,7 @@ export class ImageController {
     }
   }
 
-  @UseGuards(FirebaseAuthGuard)
+  //@UseGuards(FirebaseAuthGuard)
   @UseInterceptors(FileInterceptor('file', { storage }))
   @Post('/upload-file')
   @HttpCode(200)
@@ -103,8 +103,12 @@ export class ImageController {
     @UploadedFile() file: Express.Multer.File,
   ): Promise<{ url: string }> {
     try {
-      const currentUser = req.user;
-      const url = await this._imageService.uploadFile(currentUser.uid, file);
+      let uid = 'guest';
+      const currentUser = req?.user;
+      if (currentUser) {
+        uid = currentUser.uid;
+      }
+      const url = await this._imageService.uploadFile(uid, file);
       return { url };
     } catch (error) {
       executeError(error);
