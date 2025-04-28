@@ -195,4 +195,39 @@ export class AuthService {
     const me = await this.firebaseService.getDocumentById('users', user.uid);
     return me;
   }
+
+  async saveToken(userId: string, token: string): Promise<ApiResponse> {
+    const response: ApiResponse = {
+      executed: true,
+      message: '',
+      data: null,
+    };
+
+    try {
+      const userResponse = await this.firebaseService.getDocumentById(
+        documents.users,
+        userId,
+      );
+      if (!userResponse.executed || !userResponse.data)
+        throw new Error(userResponse.message);
+
+      const user = userResponse.data;
+      user.fcm_token = token;
+      user.updated_at = new Date();
+
+      const savedUser = await this.firebaseService.setOrAddDocument(
+        documents.users,
+        user,
+        user.id,
+      );
+      if (!savedUser.executed) throw new Error(savedUser.message);
+
+      response.data = user;
+    } catch (error) {
+      response.message = error.message;
+      response.executed = false;
+    } finally {
+      return response;
+    }
+  }
 }

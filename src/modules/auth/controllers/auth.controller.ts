@@ -21,6 +21,7 @@ import { SendAuthRegister } from '../dtos/SendAuthRegister.dto';
 import { SendSetRole } from '../dtos/SendSetRole.dto';
 import { FirebaseAuthGuard } from '../../../modules/firebase/firebase-auth.guard';
 import { SendAuthCreateUser } from '../dtos/SendAuthCreateUser.dto';
+import { SendSaveToken } from '../dtos/SendSaveToken.dto';
 
 @ApiTags('AUTH')
 @Controller('auth')
@@ -152,6 +153,26 @@ export class AuthController {
     try {
       const currentUser = req.user;
       return this.authService.setRole({ ...requestService, currentUser });
+    } catch (error) {
+      executeError(error);
+    }
+  }
+
+  @Post('/save-token')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Save FCM token for the current user' })
+  @ApiResponse({ status: 200, description: 'FCM token saved successfully' })
+  @ApiHeader({
+    name: 'x-user-uid',
+    required: false,
+    description:
+      'Optional UID for local testing without Firebase tokens (NOT for production).',
+  })
+  @UseGuards(FirebaseAuthGuard)
+  async saveToken(@Req() req, @Body() requestService: SendSaveToken) {
+    try {
+      const currentUser = req.user;
+      return this.authService.saveToken(currentUser.uid, requestService.token);
     } catch (error) {
       executeError(error);
     }
