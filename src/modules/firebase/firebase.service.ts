@@ -305,4 +305,53 @@ export class FirebaseService {
   async createCustomToken(uid: string): Promise<string> {
     return await this.firebaseApp.auth().createCustomToken(uid);
   }
+
+  async sendMulticastNotification(
+    tokens: string[],
+    notification: { title: string; body: string },
+  ): Promise<ApiResponse> {
+    const response: ApiResponse = {
+      executed: true,
+      message: '',
+      data: null,
+    };
+
+    try {
+      if (!tokens.length) {
+        response.message = 'No tokens provided for push notification.';
+        return response;
+      }
+
+      const message: admin.messaging.MulticastMessage = {
+        notification: {
+          title: notification.title,
+          body: notification.body,
+        },
+        tokens,
+      };
+
+      const batchResponse = await this.firebaseApp
+        .messaging()
+        .sendEachForMulticast(message);
+
+      response.data = {
+        successCount: batchResponse.successCount,
+        failureCount: batchResponse.failureCount,
+        responses: batchResponse.responses.map((r) => ({
+          success: r.success,
+          error: r.error?.message,
+        })),
+      };
+
+      console.log(
+        `✅ Push notification sent: ${batchResponse.successCount} success, ${batchResponse.failureCount} failures.`,
+      );
+    } catch (error) {
+      console.error('⚠️ Error sending push notification:', error.message);
+      response.executed = false;
+      response.message = error.message;
+    } finally {
+      return response;
+    }
+  }
 }

@@ -115,6 +115,22 @@ export class InventoryService {
           await doc.ref.delete();
         }
       }
+
+      try {
+        const usersSnapshot = await this.firebaseService.getCollection(
+          documents.users,
+        );
+        const tokens: string[] = [];
+        usersSnapshot.data?.forEach((user) => {
+          if (user.fcm_token) {
+            tokens.push(user.fcm_token);
+          }
+        });
+        await this.firebaseService.sendMulticastNotification(tokens, {
+          title: '🎨 New Paint Added',
+          body: 'Check out the latest color combinations!',
+        });
+      } catch {}
     } catch (error) {
       response.message = error.message;
       response.executed = false;
