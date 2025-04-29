@@ -419,6 +419,15 @@ export class PaintController {
     }
   }
 
+  @Get('/barcode/duplicates')
+  getRepeatedBarcodes() {
+    try {
+      return this._paintService.getRepeatedBarcodes();
+    } catch (error) {
+      executeError(error);
+    }
+  }
+
   @UseGuards(FirebaseAuthGuard)
   @Get('/paint-status/:brand/:paintId')
   @HttpCode(200)

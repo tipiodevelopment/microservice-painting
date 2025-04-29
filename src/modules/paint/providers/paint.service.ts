@@ -641,6 +641,74 @@ export class PaintService {
     }
   }
 
+  async getRepeatedBarcodes(): Promise<ApiResponse> {
+    const response: ApiResponse = { executed: true, message: '', data: [] };
+
+    try {
+      const firestore = await this.firebaseService.returnFirestore();
+
+      const snapshot = await firestore.collectionGroup(documents.paints).get();
+
+      if (!snapshot.empty) {
+        const paintsRaw = snapshot.docs.map((doc) => {
+          const brandId = doc.ref.parent.parent?.id;
+          const _paint = doc.data();
+          return {
+            id: doc.id,
+            brandId,
+            ..._paint,
+            created_at: _paint?.created_at?._seconds
+              ? new Date(_paint.created_at._seconds * 1000)
+              : null,
+            updated_at: _paint?.updated_at?._seconds
+              ? new Date(_paint.updated_at._seconds * 1000)
+              : null,
+            category: !_paint?.category ? '' : _paint.category,
+            isMetallic: !!_paint?.isMetallic,
+            isTransparent: !!_paint?.isTransparent,
+          };
+        });
+
+        // Agrupar por barcode
+        const grouped = paintsRaw.reduce(
+          (acc, paint) => {
+            if (!paint.barcode) return acc;
+            if (!acc[paint.barcode]) acc[paint.barcode] = [];
+            acc[paint.barcode].push(paint);
+            return acc;
+          },
+          {} as Record<string, any[]>,
+        );
+
+        // Filtrar barcodes duplicados
+        const duplicatedPaints = Object.values(grouped)
+          .filter((group) => group.length > 1)
+          .flat();
+
+        // Obtener brands
+        const responseBrands = await this.firebaseService.getCollection(
+          documents.brands,
+        );
+        const brands = responseBrands.data;
+
+        // Añadir nombre del brand
+        response.data = duplicatedPaints.map((paint) => {
+          const brand = brands.find((b) => b.id === paint.brandId)?.name ?? '';
+          return {
+            ...paint,
+            brand,
+            palettes: [], // no se incluyen palettes aquí
+          };
+        });
+      }
+    } catch (error) {
+      response.executed = false;
+      response.message = error.message;
+    } finally {
+      return response;
+    }
+  }
+
   async getPaintStatus(
     userId: string,
     brandIdentifier: string,
