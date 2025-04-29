@@ -404,6 +404,15 @@ export class PaintController {
     }
   }
 
+  @Get('/barcode/duplicates')
+  getRepeatedBarcodes() {
+    try {
+      return this._paintService.getRepeatedBarcodes();
+    } catch (error) {
+      executeError(error);
+    }
+  }
+
   /**
    * GET /paint/barcode/{barcode}
    * Find the paints with specific barcode
@@ -414,15 +423,6 @@ export class PaintController {
     try {
       const currentUser = req.user ?? '';
       return this._paintService.getByBarcode(currentUser.uid, barcode);
-    } catch (error) {
-      executeError(error);
-    }
-  }
-
-  @Get('/barcode/duplicates')
-  getRepeatedBarcodes() {
-    try {
-      return this._paintService.getRepeatedBarcodes();
     } catch (error) {
       executeError(error);
     }
