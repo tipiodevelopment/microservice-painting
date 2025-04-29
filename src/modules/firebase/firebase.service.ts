@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { getFirestore } from 'firebase-admin/firestore';
 import * as admin from 'firebase-admin';
 import { ConfigService } from '../../config/providers/config.service';
 import { Configuration } from '../../config/utils/config.keys';
@@ -16,12 +17,20 @@ export class FirebaseService {
           JSON.parse(this._configService.get(Configuration.FIREBASE_JSON)),
         ),
       });
-      console.log('Firebase Start');
+      console.log('Firebase App initialized');
     } else {
       this.firebaseApp = admin.app();
-      console.log('Firebase Started');
+      console.log('Firebase App reused');
     }
-    this.firestore = this.firebaseApp.firestore();
+
+    const dbId =
+      this._configService.get(Configuration.FIRESTORE_DB_ID) || 'default';
+
+    this.firestore = dbId
+      ? getFirestore(this.firebaseApp, dbId)
+      : getFirestore(this.firebaseApp);
+
+    console.log(`Using Firestore DB: ${dbId || '(default)'}`);
   }
 
   returnFirestore() {

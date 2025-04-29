@@ -4,4 +4,5 @@ export enum Configuration {
   APP_HOST = 'APP_HOST',
   FIREBASE_JSON = 'FIREBASE_JSON',
   GCP_JSON = 'GCP_JSON',
+  FIRESTORE_DB_ID = 'FIRESTORE_DB_ID',
 }
