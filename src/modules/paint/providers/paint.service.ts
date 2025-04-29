@@ -671,7 +671,7 @@ export class PaintService {
 
         // Agrupar por barcode
         const grouped = paintsRaw.reduce(
-          (acc, paint) => {
+          (acc, paint: any) => {
             if (!paint.barcode) return acc;
             if (!acc[paint.barcode]) acc[paint.barcode] = [];
             acc[paint.barcode].push(paint);
