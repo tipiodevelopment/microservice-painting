@@ -6,6 +6,7 @@ import {
 import { FirebaseService } from '../../firebase/firebase.service';
 import { ApiResponse } from '../../../utils/interfaces';
 import { documents } from '../../../utils/enums/documents.enum';
+import { PendingPaintSubmissionDto } from '../dto/PendingPaintSubmission.dto';
 
 @Injectable()
 export class PaintService {
@@ -970,5 +971,131 @@ export class PaintService {
 
     await Promise.all(keys.map(processCategory));
     return keys;
+  }
+
+  async createSubmission(dto: PendingPaintSubmissionDto): Promise<ApiResponse> {
+    const firestore = this.firebaseService.returnFirestore();
+    const now = new Date();
+    const submission = {
+      ...dto,
+      status: dto.status || 'pending',
+      created_at: now,
+      updated_at: now,
+    };
+    try {
+      const ref = await firestore
+        .collection(documents.pending_paint_submissions)
+        .add(submission);
+      return {
+        executed: true,
+        message: '',
+        data: { id: ref.id, ...submission },
+      };
+    } catch (error) {
+      return { executed: false, message: error.message, data: null };
+    }
+  }
+
+  async listSubmissions(
+    status?: 'pending' | 'finalized',
+  ): Promise<ApiResponse> {
+    const firestore = this.firebaseService.returnFirestore();
+    let query: any = firestore.collection(documents.pending_paint_submissions);
+    if (status) {
+      query = query.where('status', '==', status);
+    }
+    try {
+      const snap = await query.orderBy('created_at', 'desc').get();
+      const items = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      return { executed: true, message: '', data: items };
+    } catch (error) {
+      return { executed: false, message: error.message, data: null };
+    }
+  }
+
+  async updateSubmission(
+    id: string,
+    dto: PendingPaintSubmissionDto,
+  ): Promise<ApiResponse> {
+    const firestore = this.firebaseService.returnFirestore();
+    const ref = firestore
+      .collection(documents.pending_paint_submissions)
+      .doc(id);
+    const snap = await ref.get();
+    if (!snap.exists) {
+      return { executed: false, message: 'Submission not found', data: null };
+    }
+    const existing = snap.data() as any;
+    const newStatus = dto.status || existing.status;
+    const updated = {
+      ...existing,
+      ...dto,
+      status: newStatus,
+      updated_at: new Date(),
+    };
+
+    try {
+      // only create paint if moving from pending -> finalized
+      if (existing.status !== 'finalized' && newStatus === 'finalized') {
+        // validate required fields per SendCreatePaint
+        const missing: string[] = [];
+        [
+          'brandId',
+          'code',
+          'color',
+          'hex',
+          'name',
+          'set',
+          'b',
+          'g',
+          'r',
+        ].forEach((key) => {
+          if (updated[key] === undefined || updated[key] === null) {
+            missing.push(key);
+          }
+        });
+        if (missing.length) {
+          return {
+            executed: false,
+            message: `Missing required fields: ${missing.join(', ')}`,
+            data: null,
+          };
+        }
+        // check duplicate by brandId + code
+        const paintSnap = await firestore
+          .collection(`brands/${updated.brandId}/paints`)
+          .where('code', '==', updated.code)
+          .limit(1)
+          .get();
+        if (!paintSnap.empty) {
+          return {
+            executed: false,
+            message: `Paint with code "${updated.code}" already exists`,
+            data: null,
+          };
+        }
+        // create new paint
+        const paintResp = await this.createPaint({
+          brandId: updated.brandId,
+          b: updated.b,
+          g: updated.g,
+          r: updated.r,
+          code: updated.code,
+          color: updated.color,
+          hex: updated.hex,
+          name: updated.name,
+          set: updated.set,
+        });
+        if (!paintResp.executed) {
+          return paintResp;
+        }
+      }
+
+      // update submission regardless of status
+      await ref.update(updated);
+      return { executed: true, message: '', data: { id, ...updated } };
+    } catch (error) {
+      return { executed: false, message: error.message, data: null };
+    }
   }
 }

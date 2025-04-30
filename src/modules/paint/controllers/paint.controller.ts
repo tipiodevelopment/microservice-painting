@@ -10,6 +10,7 @@ import {
   Body,
   Req,
   UseGuards,
+  Patch,
 } from '@nestjs/common';
 import {
   ApiBody,
@@ -25,6 +26,7 @@ import { executeError } from '../../../utils/error';
 import { SendCreatePaint } from '../dto/SendCreatePaint.dto';
 import { SendUpdatePaint } from '../dto/SendUpdatePaint.dto';
 import { FirebaseAuthGuard } from 'src/modules/firebase/firebase-auth.guard';
+import { PendingPaintSubmissionDto } from '../dto/PendingPaintSubmission.dto';
 
 @ApiTags('PAINT')
 @Controller('paint')
@@ -149,6 +151,20 @@ export class PaintController {
     } catch (error) {
       executeError(error);
     }
+  }
+
+  @Get('/pending-paint-submissions')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'List paint submissions, optional filter by status',
+  })
+  @ApiQuery({ name: 'status', required: false, enum: ['pending', 'finalized'] })
+  @ApiResponse({
+    status: 200,
+    description: 'List of paint submissions retrieved',
+  })
+  list(@Query('status') status?: 'pending' | 'finalized') {
+    return this._paintService.listSubmissions(status);
   }
 
   /**
@@ -384,6 +400,21 @@ export class PaintController {
     }
   }
 
+  @Patch('/pending-paint-submissions/:id')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Update a pending paint submission (fields or status)',
+  })
+  @ApiParam({ name: 'id', description: 'Submission document ID' })
+  @ApiBody({
+    type: PendingPaintSubmissionDto,
+    description: 'Payload for updating a pending paint submission',
+  })
+  @ApiResponse({ status: 200, description: 'Submission updated successfully' })
+  update(@Param('id') id: string, @Body() dto: PendingPaintSubmissionDto) {
+    return this._paintService.updateSubmission(id, dto);
+  }
+
   /**
    * POST /paint/update-name-lower
    * (No body) Updates name_lower for all paints in the database.
@@ -492,5 +523,19 @@ export class PaintController {
     } catch (error) {
       executeError(error);
     }
+  }
+
+  @Post('/pending-paint-submissions')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Create a paint submission (status defaults to pending)',
+  })
+  @ApiBody({
+    type: PendingPaintSubmissionDto,
+    description: 'Payload for creating or updating a pending paint submission',
+  })
+  @ApiResponse({ status: 200, description: 'Submission created successfully' })
+  create(@Body() dto: PendingPaintSubmissionDto) {
+    return this._paintService.createSubmission(dto);
   }
 }
