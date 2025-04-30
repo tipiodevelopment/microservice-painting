@@ -12,6 +12,13 @@ export class PaintService {
   constructor(private readonly firebaseService: FirebaseService) {}
 
   async healthCheck() {
+    console.log('MIGRATION INIT');
+    await this.firebaseService.copyCollectionBetweenDatabases(
+      'palettes_paints',
+      '(default)',
+      'qa-paints',
+    );
+    console.log('FINISH');
     return { executed: true, message: 'OK', microservice: 'Painting' };
   }
 

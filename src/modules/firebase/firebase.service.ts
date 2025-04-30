@@ -363,4 +363,55 @@ export class FirebaseService {
       return response;
     }
   }
+
+  async copyCollectionBetweenDatabases(
+    collectionPath: string,
+    sourceDbId: string,
+    targetDbId: string,
+  ): Promise<ApiResponse> {
+    const response: ApiResponse = { executed: true, message: '', data: null };
+    try {
+      // Instancias de Firestore para cada databaseId
+      const srcFs = getFirestore(this.firebaseApp, sourceDbId || '(default)');
+      const dstFs = getFirestore(this.firebaseApp, targetDbId || '(default)');
+      // Llamada recursiva
+      await this.copyCollectionRecursive(
+        srcFs,
+        dstFs,
+        collectionPath,
+        collectionPath,
+      );
+    } catch (err) {
+      response.executed = false;
+      response.message = err.message;
+    }
+    return response;
+  }
+
+  private async copyCollectionRecursive(
+    srcFs: admin.firestore.Firestore,
+    dstFs: admin.firestore.Firestore,
+    srcPath: string,
+    dstPath: string,
+  ): Promise<void> {
+    const snapshot = await srcFs.collection(srcPath).get();
+
+    for (const docSnap of snapshot.docs) {
+      // 1) Copia el documento
+      const data = docSnap.data();
+      const dstDocRef = dstFs.doc(`${dstPath}/${docSnap.id}`);
+      await dstDocRef.set(data);
+
+      // 2) Busca sub-colecciones y recórrelas
+      const subcols = await docSnap.ref.listCollections();
+      for (const subcol of subcols) {
+        await this.copyCollectionRecursive(
+          srcFs,
+          dstFs,
+          `${srcPath}/${docSnap.id}/${subcol.id}`,
+          `${dstPath}/${docSnap.id}/${subcol.id}`,
+        );
+      }
+    }
+  }
 }
