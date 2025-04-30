@@ -8,13 +8,25 @@ import {
 import { SendSetRole } from '../dtos/SendSetRole.dto';
 import { roles } from 'src/utils/enums/roles.enum';
 import { documents } from '../../../utils/enums/documents.enum';
+import { ConfigService } from '../../../config/providers/config.service';
+import { Configuration } from '../../../config/utils/config.keys';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly firebaseService: FirebaseService) {}
+  constructor(
+    private readonly firebaseService: FirebaseService,
+    private readonly _configService: ConfigService,
+  ) {}
 
   async healthCheck() {
-    return { executed: true, message: 'OK', microservice: 'Painting' };
+    const dbId =
+      this._configService.get(Configuration.FIRESTORE_DB_ID) || 'default';
+    return {
+      executed: true,
+      message: 'OK',
+      microservice: 'Painting',
+      env: dbId,
+    };
   }
 
   async register(data: {
