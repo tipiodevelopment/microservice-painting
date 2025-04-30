@@ -23,8 +23,7 @@ export class FirebaseService {
       console.log('Firebase App reused');
     }
 
-    const dbId =
-      this._configService.get(Configuration.FIRESTORE_DB_ID) || 'default';
+    const dbId = this._configService.get(Configuration.FIRESTORE_DB_ID);
 
     this.firestore = dbId
       ? getFirestore(this.firebaseApp, dbId)
