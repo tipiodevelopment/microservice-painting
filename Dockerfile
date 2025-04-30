@@ -14,6 +14,8 @@ RUN yarn install
 ARG ENV_FILE
 COPY $ENV_FILE .env
 
+RUN echo "Contenido de .env:" && cat .env
+
 COPY . ./
 
 RUN yarn build
