@@ -4,6 +4,7 @@ import * as admin from 'firebase-admin';
 import { ConfigService } from '../../config/providers/config.service';
 import { Configuration } from '../../config/utils/config.keys';
 import { ApiResponse } from '../../utils/interfaces';
+import { v1 as firestoreAdmin } from '@google-cloud/firestore';
 
 @Injectable()
 export class FirebaseService {
@@ -412,5 +413,127 @@ export class FirebaseService {
         );
       }
     }
+  }
+
+  async listCompositeIndexes(
+    databaseId: string, // p.ej. 'default' o 'qa-paints'
+  ): Promise<ApiResponse> {
+    const response: ApiResponse = { executed: true, message: '', data: null };
+
+    try {
+      // 1) Carga credenciales desde tu FIREBASE_JSON
+      const firebaseJson = this._configService.get(Configuration.FIREBASE_JSON);
+      const creds = JSON.parse(firebaseJson) as {
+        project_id: string;
+        client_email: string;
+        private_key: string;
+      };
+      const projectId = creds.project_id;
+
+      // 2) Inicializa el cliente de Admin API CON tus credenciales
+      const adminClient = new firestoreAdmin.FirestoreAdminClient({
+        projectId,
+        credentials: {
+          client_email: creds.client_email,
+          private_key: creds.private_key,
+        },
+      });
+
+      // 3) Ruta para listar todos los collectionGroups
+      const parent = `projects/${projectId}/databases/${databaseId}/collectionGroups/-`;
+
+      // 4) Obtén la lista de índices compuestos
+      const [indexes] = await adminClient.listIndexes({ parent });
+
+      // 5) Mapea y devuelve solo la configuración relevante
+      response.data = indexes.map((idx) => {
+        const { ...config } = idx;
+        return config;
+      });
+    } catch (err: any) {
+      response.executed = false;
+      response.message = err.message;
+    }
+
+    return response;
+  }
+
+  async copyIndexesBetweenDatabases(
+    sourceDbId: string,
+    targetDbId: string,
+  ): Promise<ApiResponse> {
+    const response: ApiResponse = { executed: true, message: '', data: null };
+
+    try {
+      // 1) Leer y parsear credenciales desde FIREBASE_JSON
+      const firebaseJson = this._configService.get(Configuration.FIREBASE_JSON);
+      const {
+        project_id: projectId,
+        client_email,
+        private_key,
+      } = JSON.parse(firebaseJson) as {
+        project_id: string;
+        client_email: string;
+        private_key: string;
+      };
+
+      // 2) Cliente Admin API con credenciales
+      const adminClient = new firestoreAdmin.FirestoreAdminClient({
+        projectId,
+        credentials: { client_email, private_key },
+      });
+
+      // 3) Rutas parent
+      const sourceParent = `projects/${projectId}/databases/${sourceDbId}/collectionGroups/-`;
+      const targetParent = `projects/${projectId}/databases/${targetDbId}/collectionGroups/-`;
+
+      // 4) Listar índices en ORIGEN y DESTINO
+      const [sourceIndexes] = await adminClient.listIndexes({
+        parent: sourceParent,
+      });
+      const [targetIndexes] = await adminClient.listIndexes({
+        parent: targetParent,
+      });
+
+      // 5) Construir un set de “firmas” de los índices ya existentes
+      const existingSignatures = new Set<string>(
+        targetIndexes.map((idx) => {
+          const sigFields = idx.fields
+            .map((f) => `${f.fieldPath}:${f.order}`)
+            .join(',');
+          return `${idx.queryScope}|${sigFields}`;
+        }),
+      );
+
+      // 6) Recrear solo los índices que no existan
+      for (const idx of sourceIndexes) {
+        const { ...config } = idx;
+        const sigFields = idx.fields
+          .map((f) => `${f.fieldPath}:${f.order}`)
+          .join(',');
+        const signature = `${idx.queryScope}|${sigFields}`;
+
+        if (existingSignatures.has(signature)) {
+          // ya existe, omitimos
+          continue;
+        }
+
+        try {
+          await adminClient.createIndex({
+            parent: targetParent,
+            index: config,
+          });
+        } catch (err: any) {
+          // si ya existe entre el list y el create, ignoramos
+          if (err.code === 6 /* ALREADY_EXISTS */) continue;
+          throw err;
+        }
+      }
+    } catch (err: any) {
+      response.executed = false;
+      response.message = err.message;
+    }
+
+    return response;
   }
 }
