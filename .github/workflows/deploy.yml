@@ -71,6 +71,11 @@ jobs:
         run: |
           gcloud container clusters get-credentials paints --region europe-north1-a
 
+      - name: Authenticate kubectl for qa
+        if: github.ref == 'refs/heads/qa'
+        run: |
+          gcloud container clusters get-credentials paints --region europe-north1-a          
+
       # - name: Authenticate kubectl for staging
       #   if: github.ref == 'refs/heads/staging'
       #   run: |
