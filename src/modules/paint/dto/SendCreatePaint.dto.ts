@@ -52,5 +52,5 @@ export class SendCreatePaint {
   @IsOptional()
   @IsNotEmpty()
   @IsString()
-  barcode: string;
+  barcode?: string;
 }
