@@ -1,4 +1,10 @@
-import { IsDefined, IsString, IsNotEmpty, IsNumber } from 'class-validator';
+import {
+  IsDefined,
+  IsString,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+} from 'class-validator';
 
 export class SendCreatePaint {
   @IsDefined()
@@ -42,4 +48,8 @@ export class SendCreatePaint {
   @IsNotEmpty()
   @IsString()
   set: string;
+
+  @IsOptional()
+  @IsString()
+  barcode: string;
 }

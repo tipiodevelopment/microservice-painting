@@ -281,6 +281,7 @@ export class PaintService {
     name: string;
     r: number;
     set: string;
+    barcode?: string;
   }): Promise<ApiResponse> {
     const response: ApiResponse = {
       executed: true,
@@ -304,6 +305,7 @@ export class PaintService {
         r: data.r,
         set: data.set,
         name_lower: data.name.toLowerCase(),
+        barcode: data.barcode ?? '',
       };
 
       const docRef = await paintRef.add(newPaint);
