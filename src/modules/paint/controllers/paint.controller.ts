@@ -60,6 +60,12 @@ export class PaintController {
     description: 'Returns paginated paint data',
   })
   @ApiQuery({
+    name: 'category',
+    required: false,
+    description: 'Optional category to filter paints',
+    example: 'category',
+  })
+  @ApiQuery({
     name: 'brandId',
     required: false,
     description: 'Optional brand ID to filter paints',
