@@ -1,56 +1,43 @@
-import {
-  IsDefined,
-  IsString,
-  IsNotEmpty,
-  IsNumber,
-  IsOptional,
-} from 'class-validator';
+import { IsString, IsNumber, IsOptional } from 'class-validator';
 
 export class SendCreatePaint {
-  @IsDefined()
+  @IsOptional()
   @IsNumber()
   b: number;
 
-  @IsDefined()
+  @IsOptional()
   @IsNumber()
   g: number;
 
-  @IsDefined()
+  @IsOptional()
   @IsNumber()
   r: number;
 
-  @IsDefined()
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   brandId: string;
 
-  @IsDefined()
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   code: string;
 
-  @IsDefined()
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   color: string;
 
-  @IsDefined()
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   hex: string;
 
-  @IsDefined()
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   name: string;
 
-  @IsDefined()
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   set: string;
 
   @IsOptional()
-  @IsNotEmpty()
   @IsString()
   barcode?: string;
 }

@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
+import { IsString, IsNumber, IsOptional } from 'class-validator';
 
 export class SendUpdatePaint {
   @IsOptional()
@@ -14,32 +14,26 @@ export class SendUpdatePaint {
   r?: number;
 
   @IsOptional()
-  @IsNotEmpty()
   @IsString()
   brandId?: string;
 
   @IsOptional()
-  @IsNotEmpty()
   @IsString()
   code?: string;
 
   @IsOptional()
-  @IsNotEmpty()
   @IsString()
   color?: string;
 
   @IsOptional()
-  @IsNotEmpty()
   @IsString()
   hex?: string;
 
   @IsOptional()
-  @IsNotEmpty()
   @IsString()
   name?: string;
 
   @IsOptional()
-  @IsNotEmpty()
   @IsString()
   set?: string;
 }
