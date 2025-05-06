@@ -7,6 +7,7 @@ import { ColorSearchesModule } from './modules/color-searches/color-searches.mod
 import { PalettesModule } from './modules/palettes/palettes.module';
 import { WhiteListModule } from './modules/white-list/white-list.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
+import { FlagsModule } from './modules/flags/flags.module';
 
 import { ConfigModule } from '@nestjs/config';
 import { ConfigurationModule } from './config/config.module';
@@ -31,6 +32,7 @@ import { ResponseInterceptor } from './interceptors/response/response.intercepto
     PalettesModule,
     WhiteListModule,
     InventoryModule,
+    FlagsModule,
   ],
   providers: [
     {

@@ -353,6 +353,7 @@ export class PaintService {
       r: number;
       set: string;
       name_lower: string;
+      barcode: string;
     }>,
   ): Promise<ApiResponse> {
     const response: ApiResponse = {

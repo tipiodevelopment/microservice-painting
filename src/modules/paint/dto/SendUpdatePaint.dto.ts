@@ -36,4 +36,9 @@ export class SendUpdatePaint {
   @IsOptional()
   @IsString()
   set?: string;
+
+  @IsOptional()
+  @IsNotEmpty()
+  @IsString()
+  barcode?: string;
 }
