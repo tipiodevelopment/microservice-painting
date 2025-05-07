@@ -12,4 +12,5 @@ export enum documents {
   inventory = 'inventory',
   category = 'category',
   pending_paint_submissions = 'pending_paint_submissions',
+  notifications = 'notifications',
 }
