@@ -37,6 +37,10 @@ export class FirebaseService {
     return this.firestore;
   }
 
+  getMessaging(): admin.messaging.Messaging {
+    return this.firebaseApp.messaging();
+  }
+
   async verifyToken(token: string): Promise<admin.auth.DecodedIdToken> {
     return await this.firebaseApp.auth().verifyIdToken(token);
   }
@@ -534,6 +538,24 @@ export class FirebaseService {
       response.message = err.message;
     }
 
+    return response;
+  }
+
+  async updateDocument(
+    collectionName: string,
+    docId: string,
+    updateData: any,
+  ): Promise<ApiResponse> {
+    const response: ApiResponse = { executed: true, message: '', data: null };
+    try {
+      await this.firestore
+        .collection(collectionName)
+        .doc(docId)
+        .update(updateData);
+    } catch (error) {
+      response.message = error.message;
+      response.executed = false;
+    }
     return response;
   }
 }

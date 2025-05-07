@@ -8,6 +8,7 @@ import { PalettesModule } from './modules/palettes/palettes.module';
 import { WhiteListModule } from './modules/white-list/white-list.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { FlagsModule } from './modules/flags/flags.module';
+import { NotificationModule } from './modules/notification/notification.module';
 
 import { ConfigModule } from '@nestjs/config';
 import { ConfigurationModule } from './config/config.module';
@@ -33,6 +34,7 @@ import { ResponseInterceptor } from './interceptors/response/response.intercepto
     WhiteListModule,
     InventoryModule,
     FlagsModule,
+    NotificationModule,
   ],
   providers: [
     {
