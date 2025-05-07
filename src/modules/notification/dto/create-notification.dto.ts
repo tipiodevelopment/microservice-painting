@@ -21,19 +21,19 @@ export class CreateNotificationDto {
   body: string;
 
   @ApiProperty({ description: 'Route or deep-link to navigate to' })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  targetRoute: string;
+  targetRoute?: string;
 
   @ApiProperty({ type: String, format: 'date-time' })
   @IsNotEmpty()
   @IsString()
   sendAt: string; // ISO date string (initial scheduled send)
 
-  @ApiProperty()
-  @IsNotEmpty()
+  @ApiProperty({ required: false, default: false })
+  @IsOptional()
   @IsBoolean()
-  isSent: boolean;
+  isSent?: boolean;
 
   @ApiProperty()
   @IsNotEmpty()
@@ -55,12 +55,20 @@ export class CreateNotificationDto {
   @IsString()
   iconUrl?: string;
 
-  @ApiProperty({ required: false, enum: ['low', 'normal', 'high'] })
+  @ApiProperty({
+    required: false,
+    enum: ['low', 'normal', 'high'],
+    default: 'high',
+  })
   @IsOptional()
   @IsIn(['low', 'normal', 'high'])
   priority?: 'low' | 'normal' | 'high';
 
-  @ApiProperty({ required: false, description: 'If true, send to all users' })
+  @ApiProperty({
+    required: false,
+    description: 'If true, send to all users',
+    default: false,
+  })
   @IsOptional()
   @IsBoolean()
   broadcast?: boolean;

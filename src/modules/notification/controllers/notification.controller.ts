@@ -103,6 +103,19 @@ export class NotificationController {
   }
 
   @UseGuards(FirebaseAuthGuard)
+  @Get('users')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'List users for notification targeting' })
+  @ApiResponse({ status: 200, description: 'Returned list of users' })
+  async listUsers() {
+    try {
+      return this.svc.listUsers();
+    } catch (err) {
+      executeError(err);
+    }
+  }
+
+  @UseGuards(FirebaseAuthGuard)
   @Get(':id')
   @ApiOperation({ summary: 'Get one notification by ID' })
   @ApiParam({ name: 'id' })
@@ -174,19 +187,6 @@ export class NotificationController {
       return this.svc.remove(id);
     } catch (error) {
       executeError(error);
-    }
-  }
-
-  @UseGuards(FirebaseAuthGuard)
-  @Get('users')
-  @HttpCode(200)
-  @ApiOperation({ summary: 'List users for notification targeting' })
-  @ApiResponse({ status: 200, description: 'Returned list of users' })
-  async listUsers() {
-    try {
-      return this.svc.listUsers();
-    } catch (err) {
-      executeError(err);
     }
   }
 }
