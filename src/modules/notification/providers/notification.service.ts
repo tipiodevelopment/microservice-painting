@@ -207,7 +207,7 @@ export class NotificationService {
     const db = this.firebaseService.returnFirestore();
     const snap = await db
       .collection(documents.users)
-      .select('displayName', 'email')
+      .select('username', 'email')
       .get();
 
     const users = snap.docs.map((d) => ({
