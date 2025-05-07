@@ -31,6 +31,8 @@ export class NotificationService {
       updated_at: admin.firestore.Timestamp.now(),
     });
 
+    await this.validateUserTokens(dto.userId);
+
     this.logger.log(`Registered token for user ${dto.userId}`);
     return { executed: true, message: 'Token registered', data: null };
   }
@@ -136,6 +138,10 @@ export class NotificationService {
       userIds = [notif.recipientId];
     }
 
+    for (const uid of userIds) {
+      await this.validateUserTokens(uid);
+    }
+
     // 3) Recoge **todos** los tokens de esos usuarios
     const tokens: string[] = [];
     for (const uid of userIds) {
@@ -215,5 +221,30 @@ export class NotificationService {
       ...(d.data() as any),
     }));
     return { executed: true, message: '', data: users };
+  }
+
+  private async validateUserTokens(userId: string) {
+    const db = this.firebaseService.returnFirestore();
+    const userRef = db.collection('users').doc(userId);
+    const snap = await userRef.get();
+    if (!snap.exists) return;
+
+    const tokens: string[] = snap.data().fcmTokens || [];
+    const messaging = this.firebaseService.getMessaging();
+
+    for (const token of tokens) {
+      try {
+        // dryRun = true valida sin enviar push real
+        await messaging.send(
+          { token, notification: { title: '', body: '' } },
+          true,
+        );
+      } catch {
+        await userRef.update({
+          fcmTokens: admin.firestore.FieldValue.arrayRemove(token),
+        });
+        this.logger.log(`Removed invalid token for user ${userId}: ${token}`);
+      }
+    }
   }
 }
