@@ -202,4 +202,18 @@ export class NotificationService {
     await this.firebaseService.deleteDocument(this.col, id);
     return { executed: true, message: 'Deleted', data: null };
   }
+
+  async listUsers(): Promise<ApiResponse> {
+    const db = this.firebaseService.returnFirestore();
+    const snap = await db
+      .collection(documents.users)
+      .select('displayName', 'email')
+      .get();
+
+    const users = snap.docs.map((d) => ({
+      id: d.id,
+      ...(d.data() as any),
+    }));
+    return { executed: true, message: '', data: users };
+  }
 }
