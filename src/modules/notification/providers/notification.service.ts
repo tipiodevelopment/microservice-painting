@@ -229,22 +229,51 @@ export class NotificationService {
     const snap = await userRef.get();
     if (!snap.exists) return;
 
-    const tokens: string[] = snap.data().fcmTokens || [];
+    const tokens: string[] = snap.data()?.fcmTokens || [];
+    if (tokens.length === 0) return;
+
     const messaging = this.firebaseService.getMessaging();
+    const invalidTokens: string[] = [];
 
     for (const token of tokens) {
       try {
-        // dryRun = true valida sin enviar push real
+        // dryRun = true envía un test sin disparar notificación real
         await messaging.send(
-          { token, notification: { title: '', body: '' } },
-          true,
+          {
+            token,
+            // Un payload mínimo únicamente con data
+            data: { validate: 'ping' },
+          },
+          true, // dryRun
         );
-      } catch {
-        await userRef.update({
-          fcmTokens: admin.firestore.FieldValue.arrayRemove(token),
-        });
-        this.logger.log(`Removed invalid token for user ${userId}: ${token}`);
+      } catch (err: any) {
+        // Solo quita si realmente es un token no registrado o inválido
+        if (
+          err.code === 'messaging/registration-token-not-registered' ||
+          err.code === 'messaging/invalid-registration-token'
+        ) {
+          invalidTokens.push(token);
+          this.logger.log(
+            `Invalid FCM token for user ${userId}, marking for removal: ${token}`,
+          );
+        } else {
+          // Otros errores (p.e. red, quota, payload) no remueven el token
+          this.logger.error(
+            `Error validating FCM token for user ${userId}: ${token} → ${err.code}`,
+            err,
+          );
+        }
       }
+    }
+
+    if (invalidTokens.length > 0) {
+      // Elimina todos los tokens muertos de una sola vez
+      await userRef.update({
+        fcmTokens: admin.firestore.FieldValue.arrayRemove(...invalidTokens),
+      });
+      this.logger.log(
+        `Removed ${invalidTokens.length} invalid tokens for user ${userId}`,
+      );
     }
   }
 }
