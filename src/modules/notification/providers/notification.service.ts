@@ -155,8 +155,8 @@ export class NotificationService {
     }
 
     // 4) Envía en batches de 500 y limpia tokens inválidos
-    let successCount = 0;
-    let failureCount = 0;
+    // let successCount = 0;
+    // let failureCount = 0;
     const messaging = this.firebaseService.getMessaging();
 
     for (let i = 0; i < tokens.length; i += 500) {
@@ -167,8 +167,8 @@ export class NotificationService {
         data: (notif.data || {}) as Record<string, string>,
       });
 
-      successCount += resp.successCount;
-      failureCount += resp.failureCount;
+      // successCount += resp.successCount;
+      // failureCount += resp.failureCount;
 
       // elimina tokens muertos
       resp.responses.forEach((r, idx) => {
@@ -200,7 +200,7 @@ export class NotificationService {
     return {
       executed: true,
       message: 'Notification sent',
-      data: { successCount, failureCount },
+      data: { successCount: true, failureCount: false },
     };
   }
 
