@@ -36,7 +36,6 @@ export class CreateNotificationDto {
   isSent?: boolean;
 
   @ApiProperty()
-  @IsNotEmpty()
   @IsString()
   recipientId: string;
 
