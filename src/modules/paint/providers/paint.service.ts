@@ -147,10 +147,15 @@ export class PaintService {
     const paints = snapshot.docs.map((doc) => {
       const brandId = doc.ref.parent.parent?.id;
       const _paint = doc.data();
-      const brand = brands.find((b) => b.id == brandId)?.name;
+      const brand = brands.find((b) => b.id == brandId);
+
+      const name = brand.name;
+      const logo_url = brand.logo_url;
+
       return {
         id: doc.id,
-        brand,
+        brand: name,
+        brandLogo: logo_url,
         brandId,
         ..._paint,
         created_at: new Date(_paint?.created_at?._seconds * 1000),
