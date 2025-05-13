@@ -248,10 +248,14 @@ export class PalettesService {
       const snapshot = await query.limit(limit).get();
       const palettes = snapshot.docs.map((doc) => {
         const data = doc.data();
+        const createdAt = data.created_at?._seconds
+          ? new Date(data.created_at._seconds * 1000)
+          : new Date();
+
         return {
           id: doc.id,
           name: data.name,
-          created_at: new Date(data.created_at._seconds * 1000),
+          created_at: createdAt,
         };
       });
 
@@ -271,7 +275,9 @@ export class PalettesService {
             ...imageColorPickData.data,
             ...imageColorPick.data,
             created_at: new Date(
-              imageColorPick?.data.created_at._seconds * 1000,
+              imageColorPick?.data?.created_at?._seconds
+                ? imageColorPick.data.created_at._seconds * 1000
+                : Date.now(),
             ),
           };
         } else palette_paints.image_color_picks = null;
@@ -289,8 +295,17 @@ export class PalettesService {
             paint = {
               id: palette_paints.paint_id,
               ..._data,
-              created_at: new Date(_data?.created_at._seconds * 1000),
-              updated_at: new Date(_data?.updated_at._seconds * 1000),
+              created_at: new Date(
+                _data?.created_at?._seconds
+                  ? _data.created_at._seconds * 1000
+                  : Date.now(),
+              ),
+
+              updated_at: new Date(
+                _data?.updated_at?._seconds
+                  ? _data.updated_at._seconds * 1000
+                  : Date.now(),
+              ),
             };
           }
         }
@@ -309,9 +324,21 @@ export class PalettesService {
           palette.palettes_paints = palettes_paints.data.map((pp) => {
             return {
               ...pp,
-              created_at: new Date(pp?.created_at._seconds * 1000),
-              added_at: new Date(pp?.added_at._seconds * 1000),
-              updated_at: new Date(pp?.updated_at._seconds * 1000),
+              created_at: new Date(
+                pp?.created_at?._seconds
+                  ? pp.created_at._seconds * 1000
+                  : Date.now(),
+              ),
+              added_at: new Date(
+                pp?.added_at?._seconds
+                  ? pp.added_at._seconds * 1000
+                  : Date.now(),
+              ),
+              updated_at: new Date(
+                pp?.updated_at?._seconds
+                  ? pp.updated_at._seconds * 1000
+                  : Date.now(),
+              ),
             };
           });
         } else palette.palettes_paints = [];
@@ -478,7 +505,7 @@ export class PalettesService {
       data: null,
     };
     /*
-      Flow cascade delete:  
+      Flow cascade delete:
         Delete user_color_images (images)
         Delete image_color_picks
         Delete palettes_paints
