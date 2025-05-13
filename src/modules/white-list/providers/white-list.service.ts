@@ -124,8 +124,8 @@ export class WhiteListService {
         );
         const tokens: string[] = [];
         usersSnapshot.data?.forEach((user) => {
-          if (user.fcm_token) {
-            tokens.push(user.fcm_token);
+          if (Array.isArray(user.fcmTokens)) {
+            tokens.push(...user.fcmTokens);
           }
         });
         await this.firebaseService.sendMulticastNotification(tokens, {
