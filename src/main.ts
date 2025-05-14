@@ -21,7 +21,7 @@ async function bootstrap() {
     .setTitle('Paints Microservice')
     .setDescription('This microservice handles paints.')
     .setVersion('1.0')
-    // .addServer('/api')
+    .addServer('/api')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

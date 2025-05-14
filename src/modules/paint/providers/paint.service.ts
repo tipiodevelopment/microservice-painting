@@ -1072,26 +1072,34 @@ export class PaintService {
       .collection(documents.pending_paint_submissions)
       .doc(id);
 
-    // 1. Fetch existing submission
+    // 1. Leer la submission existente
     const snap = await ref.get();
     if (!snap.exists) {
       return { executed: false, message: 'Submission not found', data: null };
     }
     const existing = snap.data() as any;
 
-    // 2. Compute new status and build updated object
-    const newStatus = dto.status ?? existing.status;
+    // 2. Excluir cualquier created_at/updated_at que lleguen en el DTO
+    const {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      created_at: _ignore1,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      updated_at: _ignore2,
+      ...cleanDto
+    } = dto as any;
+
+    // 3. Calcular nuevo status y construir el objeto actualizado
+    const newStatus = cleanDto.status ?? existing.status;
     const updated = {
-      ...existing,
-      ...dto,
+      ...existing, // preserve original created_at
+      ...cleanDto, // only apply allowed DTO fields
       status: newStatus,
-      updated_at: new Date(),
+      updated_at: new Date(), // always use current date
     };
 
     try {
-      // 3. If transitioning pending → finalized, validate & create paint
+      // 4. Si pasamos de pending → finalized, validar y crear paint
       if (existing.status !== 'finalized' && newStatus === 'finalized') {
-        // Required fields for paint creation
         const missing: string[] = [];
         [
           'brandId',
@@ -1104,9 +1112,7 @@ export class PaintService {
           'g',
           'r',
         ].forEach((key) => {
-          if (updated[key] === undefined || updated[key] === null) {
-            missing.push(key);
-          }
+          if (updated[key] == null) missing.push(key);
         });
         if (missing.length) {
           return {
@@ -1116,7 +1122,7 @@ export class PaintService {
           };
         }
 
-        // Duplicate check in Firestore
+        // Verificar duplicados
         const paintSnap = await firestore
           .collection(`brands/${updated.brandId}/paints`)
           .where('code', '==', updated.code)
@@ -1130,7 +1136,7 @@ export class PaintService {
           };
         }
 
-        // Create the new paint
+        // Crear nuevo paint
         const paintResp = await this.createPaint({
           brandId: updated.brandId,
           b: updated.b,
@@ -1147,10 +1153,10 @@ export class PaintService {
         }
       }
 
-      // 4. Persist updated submission
+      // 5. Persistir la actualización
       await ref.update(updated);
 
-      // 5. Send notification if we just finalized
+      // 6. Enviar notificación si acabamos de finalizar
       if (existing.status !== 'finalized' && newStatus === 'finalized') {
         const payload = {
           title: '🎨 Your Paint Submission Is Finalized!',
@@ -1158,7 +1164,6 @@ export class PaintService {
         };
 
         if (updated.broadcast) {
-          // Broadcast to all users
           const usersSnap = await firestore.collection(documents.users).get();
           const allTokens = usersSnap.docs.flatMap((doc) => {
             const u = doc.data() as any;
@@ -1171,7 +1176,6 @@ export class PaintService {
             );
           }
         } else if (updated.userId) {
-          // Unicast to single user
           const userDoc = await firestore
             .collection(documents.users)
             .doc(updated.userId)
@@ -1189,10 +1193,10 @@ export class PaintService {
         }
       }
 
-      // 6. Return success
+      // 7. Retornar éxito
       return { executed: true, message: '', data: { id, ...updated } };
     } catch (error) {
-      return { executed: false, message: error.message, data: null };
+      return { executed: false, message: (error as Error).message, data: null };
     }
   }
 }
