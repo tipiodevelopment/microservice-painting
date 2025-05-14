@@ -55,6 +55,16 @@ export class PendingPaintSubmissionDto {
 
   @IsOptional()
   @IsString()
+  @IsNotEmpty()
+  barcode?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsString()
   @IsIn(['pending', 'finalized'])
   status?: 'pending' | 'finalized' = 'pending';
 }
