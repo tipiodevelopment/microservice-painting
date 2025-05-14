@@ -1012,9 +1012,51 @@ export class PaintService {
     if (status) {
       query = query.where('status', '==', status);
     }
+
     try {
       const snap = await query.orderBy('created_at', 'desc').get();
-      const items = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+      // Recolecta todos los userIds únicos
+      const submissions = snap.docs.map((doc) => {
+        const data = doc.data() as any;
+        return { id: doc.id, ...data };
+      });
+      const userIds: string[] = Array.from(
+        new Set(
+          submissions
+            .map((s) => s.userId)
+            .filter((uid): uid is string => !!uid),
+        ),
+      );
+
+      // Si hay usuarios, los traemos en batch
+      const emailsByUser: Record<string, string> = {};
+      if (userIds.length) {
+        // Firestore permite hasta 10 in() por consulta
+        const chunks: string[][] = [];
+        for (let i = 0; i < userIds.length; i += 10) {
+          chunks.push(userIds.slice(i, i + 10));
+        }
+        await Promise.all(
+          chunks.map(async (chunk) => {
+            const usersSnap = await firestore
+              .collection(documents.users)
+              .where(this.firebaseService.documentIdFieldPath(), 'in', chunk)
+              .get();
+            usersSnap.docs.forEach((uDoc) => {
+              const u = uDoc.data() as any;
+              emailsByUser[uDoc.id] = u.email;
+            });
+          }),
+        );
+      }
+
+      // Construye el array final
+      const items = submissions.map((sub) => ({
+        ...sub,
+        email: sub.userId ? emailsByUser[sub.userId] || null : null,
+      }));
+
       return { executed: true, message: '', data: items };
     } catch (error) {
       return { executed: false, message: error.message, data: null };
@@ -1029,12 +1071,16 @@ export class PaintService {
     const ref = firestore
       .collection(documents.pending_paint_submissions)
       .doc(id);
+
+    // 1. Fetch existing submission
     const snap = await ref.get();
     if (!snap.exists) {
       return { executed: false, message: 'Submission not found', data: null };
     }
     const existing = snap.data() as any;
-    const newStatus = dto.status || existing.status;
+
+    // 2. Compute new status and build updated object
+    const newStatus = dto.status ?? existing.status;
     const updated = {
       ...existing,
       ...dto,
@@ -1043,9 +1089,9 @@ export class PaintService {
     };
 
     try {
-      // only create paint if moving from pending -> finalized
+      // 3. If transitioning pending → finalized, validate & create paint
       if (existing.status !== 'finalized' && newStatus === 'finalized') {
-        // validate required fields per SendCreatePaint
+        // Required fields for paint creation
         const missing: string[] = [];
         [
           'brandId',
@@ -1069,7 +1115,8 @@ export class PaintService {
             data: null,
           };
         }
-        // check duplicate by brandId + code
+
+        // Duplicate check in Firestore
         const paintSnap = await firestore
           .collection(`brands/${updated.brandId}/paints`)
           .where('code', '==', updated.code)
@@ -1082,7 +1129,8 @@ export class PaintService {
             data: null,
           };
         }
-        // create new paint
+
+        // Create the new paint
         const paintResp = await this.createPaint({
           brandId: updated.brandId,
           b: updated.b,
@@ -1099,8 +1147,49 @@ export class PaintService {
         }
       }
 
-      // update submission regardless of status
+      // 4. Persist updated submission
       await ref.update(updated);
+
+      // 5. Send notification if we just finalized
+      if (existing.status !== 'finalized' && newStatus === 'finalized') {
+        const payload = {
+          title: '🎨 Your Paint Submission Is Finalized!',
+          body: `Your submission "${updated.code || updated.name}" for brand "${updated.brandId}" (hex: ${updated.hex}) has been finalized.`,
+        };
+
+        if (updated.broadcast) {
+          // Broadcast to all users
+          const usersSnap = await firestore.collection(documents.users).get();
+          const allTokens = usersSnap.docs.flatMap((doc) => {
+            const u = doc.data() as any;
+            return Array.isArray(u.fcmTokens) ? u.fcmTokens : [];
+          });
+          if (allTokens.length) {
+            await this.firebaseService.sendMulticastNotification(
+              allTokens,
+              payload,
+            );
+          }
+        } else if (updated.userId) {
+          // Unicast to single user
+          const userDoc = await firestore
+            .collection(documents.users)
+            .doc(updated.userId)
+            .get();
+          const userData = userDoc.data() as any;
+          const tokens = Array.isArray(userData?.fcmTokens)
+            ? userData.fcmTokens
+            : [];
+          if (tokens.length) {
+            await this.firebaseService.sendMulticastNotification(
+              tokens,
+              payload,
+            );
+          }
+        }
+      }
+
+      // 6. Return success
       return { executed: true, message: '', data: { id, ...updated } };
     } catch (error) {
       return { executed: false, message: error.message, data: null };

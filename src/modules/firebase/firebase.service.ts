@@ -558,4 +558,8 @@ export class FirebaseService {
     }
     return response;
   }
+
+  public documentIdFieldPath(): FirebaseFirestore.FieldPath {
+    return admin.firestore.FieldPath.documentId();
+  }
 }
