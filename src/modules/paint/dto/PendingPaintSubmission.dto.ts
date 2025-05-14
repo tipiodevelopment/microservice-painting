@@ -4,6 +4,7 @@ import {
   IsNumber,
   IsString,
   IsIn,
+  IsBoolean,
 } from 'class-validator';
 
 /**
@@ -62,6 +63,15 @@ export class PendingPaintSubmissionDto {
   @IsString()
   @IsNotEmpty()
   imageUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  userId?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  broadcast?: boolean;
 
   @IsOptional()
   @IsString()
