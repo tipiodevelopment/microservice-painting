@@ -116,21 +116,21 @@ export class InventoryService {
         }
       }
 
-      try {
-        const usersSnapshot = await this.firebaseService.getCollection(
-          documents.users,
-        );
-        const tokens: string[] = [];
-        usersSnapshot.data?.forEach((user) => {
-          if (Array.isArray(user.fcmTokens)) {
-            tokens.push(...user.fcmTokens);
-          }
-        });
-        await this.firebaseService.sendMulticastNotification(tokens, {
-          title: '🎨 New Paint Added',
-          body: 'Check out the latest color combinations!',
-        });
-      } catch {}
+      // try {
+      //   const usersSnapshot = await this.firebaseService.getCollection(
+      //     documents.users,
+      //   );
+      //   const tokens: string[] = [];
+      //   usersSnapshot.data?.forEach((user) => {
+      //     if (Array.isArray(user.fcmTokens)) {
+      //       tokens.push(...user.fcmTokens);
+      //     }
+      //   });
+      //   await this.firebaseService.sendMulticastNotification(tokens, {
+      //     title: '🎨 New Paint Added',
+      //     body: 'Check out the latest color combinations!',
+      //   });
+      // } catch {}
     } catch (error) {
       response.message = error.message;
       response.executed = false;
