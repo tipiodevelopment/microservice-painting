@@ -448,7 +448,6 @@ export class PalettesService {
       return response;
     }
   }
-
   async savePalettePaints(
     palette_id: string,
     data: SendSavePalettesPaints[],
@@ -460,42 +459,87 @@ export class PalettesService {
     };
 
     try {
+      // 1. Verificar que la paleta existe
       const paletteResponse = await this.firebaseService.getDocumentById(
         documents.palettes,
         palette_id,
       );
 
-      if (paletteResponse.data == null) throw new Error(`Palette not found.`);
+      if (paletteResponse.data == null) {
+        throw new Error(`Palette not found.`);
+      }
 
       const firestore = this.firebaseService.returnFirestore();
       const batch = firestore.batch();
       const collectionRef = firestore.collection(documents.palettes_paints);
 
-      const currentDate = new Date();
-      const responseData = [];
-      data.forEach((_data: SendSavePalettesPaints) => {
-        const docRef = collectionRef.doc();
-        if (!_data?.image_color_picks_id) _data.image_color_picks_id = null;
-        const palettePaints = {
-          id: docRef.id,
-          palette_id,
-          ..._data,
-          added_at: currentDate,
-          created_at: currentDate,
-          updated_at: currentDate,
-        };
-        responseData.push({ ...palettePaints });
-        batch.set(docRef, { ...palettePaints });
+      // 2. Cargar todos los docs existentes de esta paleta
+      const existingSnap = await collectionRef
+        .where('palette_id', '==', palette_id)
+        .get();
+
+      // 3. Construir un mapa para lookup rápido: "paintId_brandId" → DocumentSnapshot
+      const existingMap = new Map<string, FirebaseFirestore.DocumentSnapshot>();
+      existingSnap.docs.forEach((docSnap) => {
+        const d = docSnap.data();
+        const key = `${d.paint_id}_${d.brand_id}`;
+        existingMap.set(key, docSnap);
       });
+
+      const now = new Date();
+      const resultArray = [];
+
+      // 4. Para cada entrada, decidir update o set
+      for (const item of data) {
+        const key = `${item.paint_id}_${item.brand_id}`;
+        const existingDoc = existingMap.get(key);
+
+        // Asegurarnos de que image_color_picks_id esté definido
+        if (!item.image_color_picks_id) {
+          item.image_color_picks_id = null;
+        }
+
+        const payload = {
+          palette_id,
+          paint_id: item.paint_id,
+          brand_id: item.brand_id,
+          image_color_picks_id: item.image_color_picks_id,
+          updated_at: now,
+        };
+
+        if (existingDoc) {
+          // Ya existe: solo update (no tocamos created_at)
+          const docRef = existingDoc.ref;
+          batch.update(docRef, payload);
+          resultArray.push({
+            id: docRef.id,
+            ...existingDoc.data(),
+            ...payload,
+          });
+        } else {
+          // No existe: crear nuevo
+          const docRef = collectionRef.doc();
+          const newDoc = {
+            id: docRef.id,
+            ...payload,
+            added_at: now,
+            created_at: now,
+          };
+          batch.set(docRef, newDoc);
+          resultArray.push(newDoc);
+        }
+      }
+
+      // 5. Commit batch
       await batch.commit();
 
-      response.data = responseData;
-    } catch (error) {
-      response.message = error.message;
+      response.data = resultArray;
+    } catch (err) {
       response.executed = false;
-    } finally {
-      return response;
+      response.message = err.message;
     }
+
+    return response;
   }
 
   async deletePalette(palette_id: string): Promise<ApiResponse> {
