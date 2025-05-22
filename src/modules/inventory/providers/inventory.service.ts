@@ -116,21 +116,24 @@ export class InventoryService {
         }
       }
 
-      // try {
-      //   const usersSnapshot = await this.firebaseService.getCollection(
-      //     documents.users,
-      //   );
-      //   const tokens: string[] = [];
-      //   usersSnapshot.data?.forEach((user) => {
-      //     if (Array.isArray(user.fcmTokens)) {
-      //       tokens.push(...user.fcmTokens);
-      //     }
-      //   });
-      //   await this.firebaseService.sendMulticastNotification(tokens, {
-      //     title: '🎨 New Paint Added',
-      //     body: 'Check out the latest color combinations!',
-      //   });
-      // } catch {}
+      try {
+        const userDoc = await this.firebaseService.getDocumentById(
+          documents.users,
+          userId,
+        );
+
+        const tokens: string[] = [];
+        if (Array.isArray(userDoc.data?.fcmTokens)) {
+          tokens.push(...userDoc.data.fcmTokens);
+        }
+
+        if (tokens.length) {
+          await this.firebaseService.sendMulticastNotification(tokens, {
+            title: '🎨 New paint added to the inventory',
+            body: 'Check out the latest color combinations!',
+          });
+        }
+      } catch {}
     } catch (error) {
       response.message = error.message;
       response.executed = false;
@@ -192,7 +195,27 @@ export class InventoryService {
         documents.inventory,
         inventoryId,
       );
+
       response.data = deleteResponse.data;
+
+      try {
+        const userDoc = await this.firebaseService.getDocumentById(
+          documents.users,
+          userId,
+        );
+
+        const tokens: string[] = [];
+        if (Array.isArray(userDoc.data?.fcmTokens)) {
+          tokens.push(...userDoc.data.fcmTokens);
+        }
+
+        if (tokens.length) {
+          await this.firebaseService.sendMulticastNotification(tokens, {
+            title: '🎨  Paint removed from the inventory',
+            body: 'Check out the latest color combinations!',
+          });
+        }
+      } catch {}
     } catch (error) {
       response.message = error.message;
       response.executed = false;
