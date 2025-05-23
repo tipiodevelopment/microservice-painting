@@ -19,15 +19,16 @@ export class EmailService {
   }
 
   private createOAuthClient() {
-    const client = new google.auth.OAuth2(
-      this.config.get(Configuration.GMAIL_CLIENT_ID),
-      this.config.get(Configuration.GMAIL_CLIENT_SECRET),
-      this.config.get(Configuration.GMAIL_REDIRECT_URI),
-    );
-    client.setCredentials({
-      refresh_token: this.config.get(Configuration.GMAIL_REFRESH_TOKEN),
-    });
-    return client;
+    // const client = new google.auth.OAuth2(
+    //   this.config.get(Configuration.GMAIL_CLIENT_ID),
+    //   this.config.get(Configuration.GMAIL_CLIENT_SECRET),
+    //   this.config.get(Configuration.GMAIL_REDIRECT_URI),
+    // );
+    // client.setCredentials({
+    //   refresh_token: this.config.get(Configuration.GMAIL_REFRESH_TOKEN),
+    // });
+    // return client;
+    return {} as any;
   }
 
   private makeRawMessage(to: string, subject: string, text: string) {
