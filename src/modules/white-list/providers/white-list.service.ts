@@ -118,24 +118,21 @@ export class WhiteListService {
         deleted: false,
       });
 
-      try {
-        const userDoc = await this.firebaseService.getDocumentById(
-          documents.users,
-          userId,
-        );
-
-        const tokens: string[] = [];
-        if (Array.isArray(userDoc.data?.fcmTokens)) {
-          tokens.push(...userDoc.data.fcmTokens);
-        }
-
-        if (tokens.length) {
-          await this.firebaseService.sendMulticastNotification(tokens, {
-            title: '🎨 New paint added to the wishlist',
-            body: 'Check out the latest color combinations!',
-          });
-        }
-      } catch {}
+      // try {
+      //   const usersSnapshot = await this.firebaseService.getCollection(
+      //     documents.users,
+      //   );
+      //   const tokens: string[] = [];
+      //   usersSnapshot.data?.forEach((user) => {
+      //     if (Array.isArray(user.fcmTokens)) {
+      //       tokens.push(...user.fcmTokens);
+      //     }
+      //   });
+      //   await this.firebaseService.sendMulticastNotification(tokens, {
+      //     title: '🎨 New Paint Added',
+      //     body: 'Check out the latest color combinations!',
+      //   });
+      // } catch {}
 
       return { success: true, id: ref.id };
     } catch (error) {
@@ -229,25 +226,6 @@ export class WhiteListService {
       deleted: true,
       updated_at: new Date(),
     });
-
-    try {
-      const userDoc = await this.firebaseService.getDocumentById(
-        documents.users,
-        userId,
-      );
-
-      const tokens: string[] = [];
-      if (Array.isArray(userDoc.data?.fcmTokens)) {
-        tokens.push(...userDoc.data.fcmTokens);
-      }
-
-      if (tokens.length) {
-        await this.firebaseService.sendMulticastNotification(tokens, {
-          title: '🎨  Paint removed from the wishlist',
-          body: 'Check out the latest color combinations!',
-        });
-      }
-    } catch {}
 
     return { deleted: true, soft: true };
   }

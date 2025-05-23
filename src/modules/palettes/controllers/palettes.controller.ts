@@ -174,12 +174,9 @@ export class PalettesController {
     description:
       'Optional UID for local testing without Firebase tokens (NOT for production).',
   })
-  async deletePalette(@Req() req, @Param('palette_id') palette_id: string) {
+  async deletePalette(@Param('palette_id') palette_id: string) {
     try {
-      const currentUser = req.user || {
-        uid: 'sCTI275R8peTBIDQGYbXciyBNQh2',
-      };
-      return this._palettesService.deletePalette(palette_id, currentUser.uid);
+      return this._palettesService.deletePalette(palette_id);
     } catch (error) {
       executeError(error);
     }
