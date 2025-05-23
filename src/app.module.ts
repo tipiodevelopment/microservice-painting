@@ -58,6 +58,11 @@ export class AppModule {
 
   constructor(private readonly _configService: ConfigService) {
     AppModule.port = this._configService.get(Configuration.PORT);
+    console.log(
+      'PORT this._configService.get(Configuration.PORT)',
+      this._configService.get(Configuration.PORT),
+    );
+
     AppModule.basePath = this._configService.get(Configuration.BASE_PATH);
     AppModule.docUrl = this._configService.get(Configuration.BASE_PATH)
       ? `/${this._configService.get(Configuration.BASE_PATH)}/docs`
