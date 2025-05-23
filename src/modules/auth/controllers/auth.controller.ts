@@ -38,7 +38,11 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'OK' })
   HealthCheck() {
     try {
-      return this.authService.healthCheck();
+      return {
+        executed: true,
+        message: 'OK',
+        microservice: 'Painting',
+      };
     } catch (error) {
       console.error('ERROR Get health-check ', error);
       return { status: 'error' };

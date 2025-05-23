@@ -10,7 +10,7 @@ async function bootstrap() {
   // redisIoAdapter.appHost = AppModule.appHost;
   // await redisIoAdapter.connectToRedis(AppModule.redisUrl);
   // app.useWebSocketAdapter(redisIoAdapter);
-  app.setGlobalPrefix(AppModule.basePath);
+  // app.setGlobalPrefix(AppModule.basePath);
   app.useGlobalPipes(new ValidationPipe());
 
   app.use(json({ limit: '50mb' }));
