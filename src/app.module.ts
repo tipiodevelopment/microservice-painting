@@ -56,9 +56,18 @@ export class AppModule {
   static port: number | string;
 
   constructor(private readonly _configService: ConfigService) {
-    console.log('Configuration.PORT', Configuration.PORT);
-    console.log('Configuration.BASE_PATH', Configuration.BASE_PATH);
-    console.log('Configuration.APP_HOST', Configuration.APP_HOST);
+    console.log(
+      'Configuration.PORT',
+      this._configService.get(Configuration.PORT),
+    );
+    console.log(
+      'Configuration.BASE_PATH',
+      this._configService.get(Configuration.BASE_PATH),
+    );
+    console.log(
+      'Configuration.APP_HOST',
+      this._configService.get(Configuration.APP_HOST),
+    );
 
     AppModule.port = this._configService.get(Configuration.PORT);
     AppModule.basePath = this._configService.get(Configuration.BASE_PATH);
