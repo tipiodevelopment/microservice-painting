@@ -42,12 +42,12 @@ spec:
               protocol: TCP
           livenessProbe:
             httpGet:
-              path: /auth/health-check
-              port: {{ .Values.service.port }}
+              path: /auth/health-check2
+              port: {{ .Values.service.targetPort }}
           readinessProbe:
             httpGet:
-              path: /auth/health-check
-              port: {{ .Values.service.port }}
+              path: /auth/health-check2
+              port: {{ .Values.service.targetPort }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- with .Values.volumeMounts }}
