@@ -18,7 +18,7 @@ import { Configuration } from './config/utils/config.keys';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { LoggingInterceptor } from './interceptors/log/logging.interceptor';
 import { ResponseInterceptor } from './interceptors/response/response.interceptor';
-import { EmailModule } from './modules/email/email.module';
+// import { EmailModule } from './modules/email/email.module';
 
 @Module({
   imports: [
@@ -36,7 +36,7 @@ import { EmailModule } from './modules/email/email.module';
     InventoryModule,
     FlagsModule,
     NotificationModule,
-    EmailModule,
+    // EmailModule,
   ],
   providers: [
     {
