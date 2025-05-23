@@ -44,6 +44,14 @@ export class AuthController {
     }
   }
 
+  @Get('/health-check2')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Health check' })
+  @ApiResponse({ status: 200, description: 'OK' })
+  async HealthCheck2() {
+    return { status: 'OK' };
+  }
+
   /**
    * GET /auth/profile
    * Retrieve the current user's profile from Firestore.
