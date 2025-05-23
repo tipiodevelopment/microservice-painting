@@ -36,7 +36,7 @@ import { ResponseInterceptor } from './interceptors/response/response.intercepto
     InventoryModule,
     FlagsModule,
     NotificationModule,
-    EmailModule,
+    // EmailModule,
   ],
   providers: [
     {
