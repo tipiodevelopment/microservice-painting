@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { AuthModule } from './modules/auth/auth.module';
 import { ImageModule } from './modules/image/image.module';
 import { BrandModule } from './modules/brand/brand.module';
-import { EmailModule } from './modules/email/email.module';
 import { PaintModule } from './modules/paint/paint.module';
 import { ColorSearchesModule } from './modules/color-searches/color-searches.module';
 import { PalettesModule } from './modules/palettes/palettes.module';

@@ -32,7 +32,6 @@ async function bootstrap() {
       showRequestDuration: true,
     },
   });
-  console.log('PORT AppModule.port', AppModule.port);
   await app.listen(AppModule.port);
 }
 bootstrap();
