@@ -43,11 +43,11 @@ spec:
           livenessProbe:
             httpGet:
               path: /auth/health-check
-              port: {{ .Values.service.targetPort }}
+              port: {{ .Values.service.port }}
           readinessProbe:
             httpGet:
               path: /auth/health-check
-              port: {{ .Values.service.targetPort }}
+              port: {{ .Values.service.port }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- with .Values.volumeMounts }}
