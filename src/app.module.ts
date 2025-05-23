@@ -18,6 +18,7 @@ import { Configuration } from './config/utils/config.keys';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { LoggingInterceptor } from './interceptors/log/logging.interceptor';
 import { ResponseInterceptor } from './interceptors/response/response.interceptor';
+import { EmailModule } from './modules/email/email.module';
 
 @Module({
   imports: [
@@ -35,7 +36,7 @@ import { ResponseInterceptor } from './interceptors/response/response.intercepto
     InventoryModule,
     FlagsModule,
     NotificationModule,
-    // EmailModule,
+    EmailModule,
   ],
   providers: [
     {
@@ -56,19 +57,6 @@ export class AppModule {
   static port: number | string;
 
   constructor(private readonly _configService: ConfigService) {
-    console.log(
-      'Configuration.PORT',
-      this._configService.get(Configuration.PORT),
-    );
-    console.log(
-      'Configuration.BASE_PATH',
-      this._configService.get(Configuration.BASE_PATH),
-    );
-    console.log(
-      'Configuration.APP_HOST',
-      this._configService.get(Configuration.APP_HOST),
-    );
-
     AppModule.port = this._configService.get(Configuration.PORT);
     AppModule.basePath = this._configService.get(Configuration.BASE_PATH);
     AppModule.docUrl = this._configService.get(Configuration.BASE_PATH)
