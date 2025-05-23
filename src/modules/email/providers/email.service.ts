@@ -1,5 +1,5 @@
 // src/email/email.service.ts
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { google } from 'googleapis';
 import { ConfigService } from '@nestjs/config';
 import { FirebaseService } from 'src/modules/firebase/firebase.service';
@@ -7,7 +7,6 @@ import { Configuration } from '../../../config/utils/config.keys';
 
 @Injectable()
 export class EmailService {
-  private readonly logger = new Logger(EmailService.name);
   private oauth2Client = this.createOAuthClient();
 
   constructor(
@@ -62,9 +61,9 @@ export class EmailService {
         userId: 'me',
         requestBody: { raw },
       });
-      this.logger.log(`Welcome email sent to ${to}`);
+      console.log(`Welcome email sent to ${to}`);
     } catch (err) {
-      this.logger.error(`Failed to send welcome to ${to}`, err);
+      console.error(`Failed to send welcome to ${to}`, err);
     }
   }
 
@@ -84,9 +83,9 @@ export class EmailService {
           userId: 'me',
           requestBody: { raw },
         });
-        this.logger.log(`Newsletter sent to ${email}`);
+        console.log(`Newsletter sent to ${email}`);
       } catch (err) {
-        this.logger.error(`Newsletter failed for ${email}`, err);
+        console.error(`Newsletter failed for ${email}`, err);
       }
     }
   }
