@@ -1,8 +1,6 @@
 FROM node:20
 
-EXPOSE 8000
 
-CMD yarn start
 
 WORKDIR /usr/src/app
 
@@ -16,4 +14,8 @@ COPY $ENV_FILE .env
 
 COPY . ./
 
+RUN echo "=== CONTENIDO .env ===" && cat .env
+
+EXPOSE 8000
 RUN yarn build
+CMD ["yarn", "start"]
