@@ -40,16 +40,9 @@ export class AuthController {
     try {
       return this.authService.healthCheck();
     } catch (error) {
-      executeError(error);
+      console.error(error);
+      return { status: 'error' };
     }
-  }
-
-  @Get('/health-check2')
-  @HttpCode(200)
-  @ApiOperation({ summary: 'Health check' })
-  @ApiResponse({ status: 200, description: 'OK' })
-  async HealthCheck2() {
-    return { status: 'OK' };
   }
 
   /**
