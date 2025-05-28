@@ -278,4 +278,20 @@ export class NotificationService {
       );
     }
   }
+
+  async updateUserNotification(userId: string, activeNotification: boolean) {
+    const firestore = this.firebaseService.returnFirestore();
+    const userRef = firestore.collection(documents.users).doc(userId);
+    const snap = await userRef.get();
+    if (!snap.exists) {
+      throw new NotFoundException(`User ${userId} not found`);
+    }
+
+    await userRef.update({ activeNotification });
+    return {
+      executed: true,
+      message: 'activeNotification updated',
+      data: { id: userId, activeNotification },
+    };
+  }
 }
