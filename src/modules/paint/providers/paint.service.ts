@@ -394,56 +394,56 @@ export class PaintService {
     const targetRGB = this.hexToRgb(hex);
     if (!targetRGB) throw new Error('Invalid hex color');
 
-    const maxDistance = Math.sqrt(255 ** 2 + 255 ** 2 + 255 ** 2);
-    const allPaints: any[] = [];
-
-    // Leer marcas en paralelo
+    // --- 1) Recoger todas las distancias (sin normalizar aún) ---
     const brandPromises = brandIds.map(async (brandId) => {
       const brandSnap = await firestore.collection('brands').doc(brandId).get();
-      if (!brandSnap.exists) return null;
+      if (!brandSnap.exists) return [];
 
-      const brandData = brandSnap.data();
-
+      const brandData = brandSnap.data()!;
       const paintsSnap = await firestore
         .collection(`brands/${brandId}/paints`)
         .get();
-
-      if (paintsSnap.empty) return null;
+      if (paintsSnap.empty) return [];
 
       return paintsSnap.docs.map((doc) => {
-        const paint = doc.data();
+        const paint = doc.data() as any;
         const distance = this.calculateEuclideanDistance(targetRGB, {
           r: paint.r,
           g: paint.g,
           b: paint.b,
         });
-        const similarity = +(100 - (distance / maxDistance) * 100).toFixed(2);
-
         return {
           id: doc.id,
-          similarity,
-          ...paint,
+          paint,
           brand: {
             id: brandId,
             name: brandData.name,
             logo_url: brandData.logo_url,
           },
+          distance,
         };
       });
     });
 
-    // Esperar todas las marcas y pintar
-    const results = await Promise.all(brandPromises);
+    // Espera y aplana resultados
+    const rawResults = (await Promise.all(brandPromises)).flat();
 
-    // Aplanar y filtrar nulos
-    results
-      .filter(Boolean)
-      .forEach((paintArray) => allPaints.push(...paintArray));
+    // --- 2) Calcula la distancia máxima observada en tu dataset ---
+    const maxObserved = rawResults.reduce(
+      (max, item) => Math.max(max, item.distance),
+      0,
+    );
 
-    // Ordenar por similitud global
-    allPaints.sort((a, b) => b.similarity - a.similarity);
+    // --- 3) Normaliza con esa distancia máxima, ordena y pagína ---
+    const allPaints = rawResults
+      .map(({ id, paint, brand, distance }) => ({
+        id,
+        ...paint,
+        brand,
+        similarity: +(100 - (distance / maxObserved) * 100).toFixed(2),
+      }))
+      .sort((a, b) => b.similarity - a.similarity);
 
-    // Paginar
     const totalPaints = allPaints.length;
     const totalPages = Math.ceil(totalPaints / limit);
     const currentPage = Math.max(1, Math.min(page, totalPages));
@@ -459,15 +459,15 @@ export class PaintService {
     };
   }
 
+  // Helpers
   private hexToRgb(hex: string): { r: number; g: number; b: number } | null {
     const cleanHex = hex.replace('#', '').trim();
     if (!/^[0-9A-Fa-f]{6}$/.test(cleanHex)) return null;
-
-    const r = parseInt(cleanHex.substring(0, 2), 16);
-    const g = parseInt(cleanHex.substring(2, 4), 16);
-    const b = parseInt(cleanHex.substring(4, 6), 16);
-
-    return { r, g, b };
+    return {
+      r: parseInt(cleanHex.substring(0, 2), 16),
+      g: parseInt(cleanHex.substring(2, 4), 16),
+      b: parseInt(cleanHex.substring(4, 6), 16),
+    };
   }
 
   private calculateEuclideanDistance(
@@ -475,9 +475,7 @@ export class PaintService {
     c2: { r: number; g: number; b: number },
   ): number {
     return Math.sqrt(
-      Math.pow(c1.r - c2.r, 2) +
-        Math.pow(c1.g - c2.g, 2) +
-        Math.pow(c1.b - c2.b, 2),
+      (c1.r - c2.r) ** 2 + (c1.g - c2.g) ** 2 + (c1.b - c2.b) ** 2,
     );
   }
 
