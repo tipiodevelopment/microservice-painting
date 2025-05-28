@@ -129,7 +129,7 @@ export class WhiteListService {
           tokens.push(...userDoc.data.fcmTokens);
         }
 
-        if (tokens.length) {
+        if (tokens.length && userDoc.data?.activeNotification) {
           await this.firebaseService.sendMulticastNotification(tokens, {
             title: '🎨 New paint added to the wishlist',
             body: 'Check out the latest color combinations!',
@@ -241,7 +241,7 @@ export class WhiteListService {
         tokens.push(...userDoc.data.fcmTokens);
       }
 
-      if (tokens.length) {
+      if (tokens.length && userDoc.data?.activeNotification) {
         await this.firebaseService.sendMulticastNotification(tokens, {
           title: '🎨  Paint removed from the wishlist',
           body: 'Check out the latest color combinations!',

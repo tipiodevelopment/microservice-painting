@@ -1182,7 +1182,7 @@ export class PaintService {
           const tokens = Array.isArray(userData?.fcmTokens)
             ? userData.fcmTokens
             : [];
-          if (tokens.length) {
+          if (tokens.length && userData?.activeNotification) {
             await this.firebaseService.sendMulticastNotification(
               tokens,
               payload,
