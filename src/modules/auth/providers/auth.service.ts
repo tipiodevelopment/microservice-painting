@@ -8,10 +8,17 @@ import {
 import { SendSetRole } from '../dtos/SendSetRole.dto';
 import { roles } from 'src/utils/enums/roles.enum';
 import { documents } from '../../../utils/enums/documents.enum';
+import {
+  MailjetService,
+  MailjetTemplateId,
+} from '../../../modules/mailjet/providers/mailjet.service';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly firebaseService: FirebaseService) {}
+  constructor(
+    private readonly firebaseService: FirebaseService,
+    private readonly mailjet: MailjetService,
+  ) {}
 
   async register(data: {
     username: string;
@@ -50,6 +57,12 @@ export class AuthService {
         createdUser.data.uid,
       );
       if (!savedUser.executed) return createdUser;
+
+      await this.mailjet.sendTemplate(
+        MailjetTemplateId.Welcome,
+        [{ Email: data.email, Name: data.username }],
+        { name: data.username },
+      );
 
       const auditLog: AuditLog = {
         changed_by: createdUser.data.uid,
@@ -102,6 +115,12 @@ export class AuthService {
         data.uid,
       );
       if (!savedUser.executed) return savedUser;
+
+      await this.mailjet.sendTemplate(
+        MailjetTemplateId.Welcome,
+        [{ Email: data.email, Name: data.name }],
+        { name: data.name },
+      );
 
       const auditLog: AuditLog = {
         changed_by: data.uid,
