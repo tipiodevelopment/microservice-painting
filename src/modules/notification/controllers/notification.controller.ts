@@ -26,6 +26,7 @@ import { UpdateNotificationDto } from '../dto/update-notification.dto';
 import { executeError } from '../../../utils/error';
 import { FirebaseAuthGuard } from 'src/modules/firebase/firebase-auth.guard';
 import { RegisterTokenDto } from '../dto/register-token.dto';
+import { SendUpdateUserNotification } from '../dto/send-update-user-notification';
 
 @ApiTags('Notifications')
 @Controller('notifications')
@@ -130,6 +131,38 @@ export class NotificationController {
       return this.svc.findOne(id);
     } catch (error) {
       executeError(error);
+    }
+  }
+
+  /**
+   * PUT /notifications/users/:id
+   * Actualiza el flag activeNotification de un usuario.
+   */
+  @Put('users/:id')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Update activeNotification flag for a user',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'UID of the user whose flag will be updated',
+  })
+  @ApiBody({
+    type: SendUpdateUserNotification,
+    description: '{ activeNotification: boolean }',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'activeNotification updated successfully',
+  })
+  async updateUserNotification(
+    @Param('id') id: string,
+    @Body() dto: SendUpdateUserNotification,
+  ) {
+    try {
+      return await this.svc.updateUserNotification(id, dto.activeNotification);
+    } catch (error) {
+      return executeError(error);
     }
   }
 
