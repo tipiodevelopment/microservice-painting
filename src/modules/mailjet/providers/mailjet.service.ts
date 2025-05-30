@@ -7,7 +7,7 @@ export interface Recipient {
 }
 
 export enum MailjetTemplateId {
-  Welcome = 7025745,
+  Welcome = 7025737,
 }
 
 @Injectable()
