@@ -19,6 +19,7 @@ export class LoggingInterceptor implements NestInterceptor {
     const body = request.body ?? {};
     const query = request.query ?? {};
     const params = request.params ?? {};
+    const user = request.user ?? null;
 
     const microservice = 'paint-microservice';
     const startTimestamp = new Date().toISOString();
@@ -29,7 +30,7 @@ export class LoggingInterceptor implements NestInterceptor {
     }
 
     logger.info(
-      `[${microservice}] [START] ${method} ${url} [Query] ${JSON.stringify(query)} [Params] ${JSON.stringify(params)} [Body] ${JSON.stringify(body)} [Timestamp] ${startTimestamp}`,
+      `[${microservice}] [START] ${method} ${url} [Query] ${JSON.stringify(query)} [Params] ${JSON.stringify(params)} [Body] ${JSON.stringify(body)} [User] ${JSON.stringify(user)} [Timestamp] ${startTimestamp}`,
     );
 
     return next.handle().pipe(
