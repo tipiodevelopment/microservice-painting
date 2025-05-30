@@ -24,9 +24,9 @@ export class LoggingInterceptor implements NestInterceptor {
     const startTimestamp = new Date().toISOString();
     const startTime = Date.now();
 
-    // if (url === '/auth/health-check') {
-    //   return next.handle();
-    // }
+    if (url === '/auth/health-check') {
+      return next.handle();
+    }
 
     logger.info(
       `[${microservice}] [START] ${method} ${url} [Query] ${JSON.stringify(query)} [Params] ${JSON.stringify(params)} [Body] ${JSON.stringify(body)} [Timestamp] ${startTimestamp}`,
