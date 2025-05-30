@@ -3,7 +3,6 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { urlencoded, json } from 'express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { LoggingInterceptor } from './interceptors/log/log.interceptor';
 
 async function bootstrap() {
   const app: any = await NestFactory.create(AppModule);
@@ -33,7 +32,6 @@ async function bootstrap() {
       showRequestDuration: true,
     },
   });
-  app.useGlobalInterceptors(new LoggingInterceptor());
   console.log('PORT', AppModule.port);
   await app.listen(AppModule.port);
 }

@@ -1,15 +1,17 @@
-// log.interceptor.ts
 import {
   CallHandler,
   ExecutionContext,
   Injectable,
   NestInterceptor,
 } from '@nestjs/common';
-import { Observable, tap, catchError } from 'rxjs';
-import { logger } from './logger';
+import { Observable } from 'rxjs';
+import { tap, catchError } from 'rxjs/operators';
+import logger from './logger';
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
+  // private readonly logger = new Logger('HeartService');
+
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
     const method = request.method;
@@ -22,9 +24,9 @@ export class LoggingInterceptor implements NestInterceptor {
     const startTimestamp = new Date().toISOString();
     const startTime = Date.now();
 
-    if (url === '/auth/health-check') {
-      return next.handle();
-    }
+    // if (url === '/auth/health-check') {
+    //   return next.handle();
+    // }
 
     logger.info(
       `[${microservice}] [START] ${method} ${url} [Query] ${JSON.stringify(query)} [Params] ${JSON.stringify(params)} [Body] ${JSON.stringify(body)} [Timestamp] ${startTimestamp}`,

@@ -4,7 +4,7 @@ import { SendSavePalettes } from '../dto/SendSavePalettes.dto';
 import { ApiResponse } from '../../../utils/interfaces';
 import { documents } from '../../../utils/enums/documents.enum';
 import { SendSavePalettesPaints } from '../dto/SendSavePalettesPaints.dto';
-import * as moment from 'moment';
+import moment from 'moment';
 
 @Injectable()
 export class PalettesService {

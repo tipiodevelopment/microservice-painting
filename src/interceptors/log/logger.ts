@@ -1,9 +1,11 @@
-import { createLogger, transports, format } from 'winston';
-import * as datadogWinston from 'datadog-winston';
-
+import winston, { createLogger, format, Logger } from 'winston';
+// import expressWinston from 'express-winston';
 import { ConfigService } from '../../config/providers/config.service';
 import { Configuration } from '../../config/utils/config.keys';
-
+import {
+  ConsoleTransportInstance,
+  HttpTransportInstance,
+} from 'winston/lib/winston/transports';
 const configService = new ConfigService();
 const DATADOG_API_KEY = configService.get(Configuration.DATADOG_API_KEY);
 const BRANCH = configService.get(Configuration.BRANCH);
@@ -15,7 +17,11 @@ if (!DATADOG_API_KEY) {
   );
 }
 
-const logger = createLogger({
+console.log(DATADOG_API_KEY);
+console.log(SERVICE_NAME);
+console.log(BRANCH);
+
+const transportConsole = new winston.transports.Console({
   format: format.combine(
     format.errors({ stack: true }),
     format.metadata(),
@@ -25,24 +31,33 @@ const logger = createLogger({
         `${timestamp} [${level.toUpperCase()}]: ${message}`,
     ),
   ),
-  transports: [new transports.Console()],
 });
 
+const transports: (HttpTransportInstance | ConsoleTransportInstance)[] = [
+  transportConsole,
+];
+
 if (DATADOG_API_KEY) {
-  logger.add(
-    new datadogWinston({
-      hostname: SERVICE_NAME,
-      apiKey: DATADOG_API_KEY,
-      service: SERVICE_NAME,
-      ddsource: 'nodejs',
-      ddtags: `env:${BRANCH},service:${SERVICE_NAME}`,
-      site: 'datadoghq.eu',
-      intakeRegion: 'eu',
-      logLevel: 'info',
-      handleExceptions: true,
-      handleRejections: true,
+  console.info('----- Init transportDatadog ----- ');
+  console.log(
+    `/v1/input/${DATADOG_API_KEY}&ddsource=nodejs&service=${SERVICE_NAME}`,
+  );
+  transports.push(
+    new winston.transports.Http({
+      host: 'http-intake.logs.datadoghq.eu',
+      // path: `/v1/input/${DATADOG_API_KEY}&ddsource=nodejs&service=${SERVICE_NAME}`,
+      path: `/api/v2/logs?dd-api-key=${DATADOG_API_KEY}&ddsource=nodejs&service=${SERVICE_NAME}`,
+      ssl: true,
+      port: 443,
     }),
   );
+  console.info('----- Finish transportDatadog ----- ');
 }
 
-export { logger };
+const logger: Logger = createLogger({
+  level: 'debug',
+  exitOnError: false,
+  transports,
+});
+
+export default logger;
