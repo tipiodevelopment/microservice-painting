@@ -18,10 +18,8 @@ export class FirebaseService {
           JSON.parse(this._configService.get(Configuration.FIREBASE_JSON)),
         ),
       });
-      console.log('Firebase App initialized');
     } else {
       this.firebaseApp = admin.app();
-      console.log('Firebase App reused');
     }
 
     const dbId = this._configService.get(Configuration.FIRESTORE_DB_ID);
@@ -29,8 +27,6 @@ export class FirebaseService {
     this.firestore = dbId
       ? getFirestore(this.firebaseApp, dbId)
       : getFirestore(this.firebaseApp);
-
-    console.log(`Using Firestore DB: ${dbId || '(default)'}`);
   }
 
   returnFirestore() {
