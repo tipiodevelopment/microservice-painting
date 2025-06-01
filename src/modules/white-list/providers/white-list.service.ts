@@ -56,6 +56,7 @@ export class WhiteListService {
         .collection(documents.paints)
         .doc(body.paint_id)
         .get();
+      const _paint = paintDoc.data();
       if (!paintDoc.exists) {
         throw new NotFoundException(
           'Paint does not exist for the specified brand',
@@ -129,7 +130,11 @@ export class WhiteListService {
           tokens.push(...userDoc.data.fcmTokens);
         }
 
-        if (tokens.length && userDoc.data?.activeNotification) {
+        if (
+          tokens.length &&
+          userDoc.data?.activeNotification &&
+          _paint.manualCreatorUserId === userId
+        ) {
           await this.firebaseService.sendMulticastNotification(tokens, {
             title: '🎨 New paint added to the wishlist',
             body: 'Check out the latest color combinations!',

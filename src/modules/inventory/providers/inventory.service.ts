@@ -59,6 +59,7 @@ export class InventoryService {
         .collection(`brands/${data.brand_id}/paints`)
         .doc(data.paint_id)
         .get();
+      const _paint = queryExistPaint.data();
       if (!queryExistPaint.exists) throw new Error(`Paint was not found`);
 
       const querySnapshot = await firestore
@@ -127,7 +128,11 @@ export class InventoryService {
           tokens.push(...userDoc.data.fcmTokens);
         }
 
-        if (tokens.length && userDoc.data?.activeNotification) {
+        if (
+          tokens.length &&
+          userDoc.data?.activeNotification &&
+          _paint.manualCreatorUserId === userId
+        ) {
           await this.firebaseService.sendMulticastNotification(tokens, {
             title: '🎨 New paint added to the inventory',
             body: 'Check out the latest color combinations!',
