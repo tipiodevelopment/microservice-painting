@@ -27,6 +27,8 @@ import { SendCreatePaint } from '../dto/SendCreatePaint.dto';
 import { SendUpdatePaint } from '../dto/SendUpdatePaint.dto';
 import { FirebaseAuthGuard } from 'src/modules/firebase/firebase-auth.guard';
 import { PendingPaintSubmissionDto } from '../dto/PendingPaintSubmission.dto';
+import { SendAddTag } from '../dto/SendAddTag';
+import { SendUpdateTag } from '../dto/SendUpdateTag';
 
 @ApiTags('PAINT')
 @Controller('paint')
@@ -543,5 +545,66 @@ export class PaintController {
   @ApiResponse({ status: 200, description: 'Submission created successfully' })
   create(@Body() dto: PendingPaintSubmissionDto) {
     return this._paintService.createSubmission(dto);
+  }
+
+  @UseGuards(FirebaseAuthGuard)
+  @Post('/tags')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Add tag to paint',
+  })
+  @ApiBody({
+    type: SendAddTag,
+    description: 'Payload for add tag to a paint',
+  })
+  @ApiResponse({ status: 200, description: 'Add Tag successfully' })
+  addTag(@Req() req, @Body() dto: SendAddTag) {
+    const currentUser = req.user;
+    return this._paintService.addTag({ ...dto, userId: currentUser.uid });
+  }
+
+  @UseGuards(FirebaseAuthGuard)
+  @Get('/user/tags/:brandId/:paintId')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Get tags from a paint',
+  })
+  @ApiResponse({ status: 200, description: 'Get Tags successfully' })
+  getTags(
+    @Req() req,
+    @Param('brandId') brandId: string,
+    @Param('paintId') paintId: string,
+  ) {
+    const currentUser = req.user;
+    return this._paintService.getTags(currentUser.uid, brandId, paintId);
+  }
+
+  @UseGuards(FirebaseAuthGuard)
+  @Put('/user/tags/:tagId')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Update tag from a paint',
+  })
+  @ApiResponse({ status: 200, description: 'Update Tag successfully' })
+  updateTag(
+    @Req() req,
+    @Param('tagId') tagId: string,
+    @Body()
+    body: SendUpdateTag,
+  ) {
+    const currentUser = req.user;
+    return this._paintService.updateTag(currentUser.uid, tagId, body.tag);
+  }
+
+  @UseGuards(FirebaseAuthGuard)
+  @Delete('/user/tags/:tagId')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Update tag from a paint',
+  })
+  @ApiResponse({ status: 200, description: 'Update Tag successfully' })
+  deleteTag(@Req() req, @Param('tagId') tagId: string) {
+    const currentUser = req.user;
+    return this._paintService.deleteTag(currentUser.uid, tagId);
   }
 }

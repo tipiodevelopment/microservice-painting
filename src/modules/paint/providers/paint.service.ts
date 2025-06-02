@@ -7,6 +7,8 @@ import { FirebaseService } from '../../firebase/firebase.service';
 import { ApiResponse } from '../../../utils/interfaces';
 import { documents } from '../../../utils/enums/documents.enum';
 import { PendingPaintSubmissionDto } from '../dto/PendingPaintSubmission.dto';
+import { SendAddTag } from '../dto/SendAddTag';
+import logger from 'src/interceptors/log/logger';
 
 @Injectable()
 export class PaintService {
@@ -1196,6 +1198,142 @@ export class PaintService {
 
       // 7. Retornar éxito
       return { executed: true, message: '', data: { id, ...updated } };
+    } catch (error) {
+      return { executed: false, message: (error as Error).message, data: null };
+    }
+  }
+
+  async addTag(data: SendAddTag & { userId: string }): Promise<ApiResponse> {
+    try {
+      const firestore = this.firebaseService.returnFirestore();
+      logger.debug(
+        `[paintService.addTag] paintRef: brands/${data.brandId}/paints/${data.paintId}`,
+      );
+      const paintRef = firestore.doc(
+        `brands/${data.brandId}/paints/${data.paintId}`,
+      );
+      const paintSnapshot = await paintRef.get();
+      if (!paintSnapshot.exists)
+        throw new Error(
+          `Paint ${data.paintId} not found in brand ${data.brandId}.`,
+        );
+      const currentDate = new Date();
+      const body = {
+        user_id: data.userId,
+        is_global: false,
+        paint_id: data.paintId,
+        brand_id: data.brandId,
+        created_at: currentDate,
+        updated_at: currentDate,
+      };
+      logger.debug(
+        `[paintService.addTag] ${documents.paint_tag}: ${JSON.stringify(body)}`,
+      );
+      const addTagResponse = await this.firebaseService.setOrAddDocument(
+        documents.paint_tag,
+        body,
+      );
+
+      if (!addTagResponse.executed) throw Error(addTagResponse.message);
+
+      return { executed: true, message: '', data: addTagResponse.data };
+    } catch (error) {
+      return { executed: false, message: (error as Error).message, data: null };
+    }
+  }
+
+  async getTags(
+    userId: string,
+    brandId: string,
+    paintId: string,
+  ): Promise<ApiResponse> {
+    try {
+      logger.debug(
+        `[paintService.getTags] userId: ${userId} brandId: ${brandId} paintId: ${paintId}`,
+      );
+      const firestore = this.firebaseService.returnFirestore();
+      const query = firestore
+        .collection(documents.paint_tag)
+        .where('user_id', '==', userId)
+        .where('brand_id', '==', brandId)
+        .where('paint_id', '==', paintId);
+
+      const query2 = firestore
+        .collection(documents.paint_tag)
+        .where('is_global', '==', false)
+        .where('brand_id', '==', brandId)
+        .where('paint_id', '==', paintId);
+
+      const userTagsSnap = await query.get();
+      const globalTagsSnap = await query2.get();
+
+      const data1 = userTagsSnap.docs.map((doc) => {
+        const _data = doc.data();
+        return {
+          id: doc.id,
+          ..._data,
+          created_at: new Date(_data?.created_at._seconds * 1000),
+          updated_at: new Date(_data?.updated_at._seconds * 1000),
+        };
+      });
+
+      const data2 = globalTagsSnap.docs.map((doc) => {
+        const _data = doc.data();
+        return {
+          id: doc.id,
+          ..._data,
+          created_at: new Date(_data?.created_at._seconds * 1000),
+          updated_at: new Date(_data?.updated_at._seconds * 1000),
+        };
+      });
+      return { executed: true, message: '', data: [...data1, ...data2] };
+    } catch (error) {
+      return { executed: false, message: (error as Error).message, data: null };
+    }
+  }
+
+  async updateTag(userId: string, tagId: string, tag: string) {
+    try {
+      const firestore = this.firebaseService.returnFirestore();
+      logger.debug(
+        `[paintService.updateTag] userId: ${userId} tagId: ${tagId}`,
+      );
+      const _tagDoc = firestore.collection(documents.paint_tag).doc(tagId);
+      const _tag = await _tagDoc.get();
+      if (!_tag.exists) throw new Error(`Tag ${tagId} not found.`);
+      if (_tag.data()?.user_id != userId)
+        throw new Error(`This user can not udpate this tag`);
+
+      const currentDate = new Date();
+      const response = await this.firebaseService.setOrAddDocument(
+        documents.paint_tag,
+        { tag, updated_at: currentDate },
+        tagId,
+      );
+
+      return { executed: true, message: '', data: response.data };
+    } catch (error) {
+      return { executed: false, message: (error as Error).message, data: null };
+    }
+  }
+
+  async deleteTag(userId: string, tagId: string) {
+    try {
+      const firestore = this.firebaseService.returnFirestore();
+      logger.debug(
+        `[paintService.updateTag] userId: ${userId} tagId: ${tagId}`,
+      );
+      const _tagDoc = firestore.collection(documents.paint_tag).doc(tagId);
+      const _tag = await _tagDoc.get();
+      if (!_tag.exists) throw new Error(`Tag ${tagId} not found.`);
+      if (_tag.data()?.user_id != userId)
+        throw new Error(`This user can not delete this tag`);
+
+      const deleteResponse = await this.firebaseService.deleteDocument(
+        documents.paint_tag,
+        tagId,
+      );
+      return { executed: true, message: '', data: deleteResponse.data };
     } catch (error) {
       return { executed: false, message: (error as Error).message, data: null };
     }
