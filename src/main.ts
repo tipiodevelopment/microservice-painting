@@ -3,6 +3,8 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { urlencoded, json } from 'express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { setDefaultResultOrder } from 'dns';
+setDefaultResultOrder('ipv4first');
 
 async function bootstrap() {
   const app: any = await NestFactory.create(AppModule);

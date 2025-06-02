@@ -1223,6 +1223,7 @@ export class PaintService {
         is_global: false,
         paint_id: data.paintId,
         brand_id: data.brandId,
+        tag: data.tag,
         created_at: currentDate,
         updated_at: currentDate,
       };
@@ -1236,7 +1237,66 @@ export class PaintService {
 
       if (!addTagResponse.executed) throw Error(addTagResponse.message);
 
-      return { executed: true, message: '', data: addTagResponse.data };
+      return {
+        executed: true,
+        message: '',
+        data: { ...body, id: addTagResponse.data._path.segments[1] ?? '' },
+      };
+    } catch (error) {
+      return { executed: false, message: (error as Error).message, data: null };
+    }
+  }
+
+  async addTagAdmin(
+    data: SendAddTag & { userId: string },
+  ): Promise<ApiResponse> {
+    try {
+      const firestore = this.firebaseService.returnFirestore();
+      const userSnap = await firestore
+        .collection(documents.users)
+        .doc(data.userId)
+        .get();
+      if (!userSnap.exists) throw new Error(`User not found.`);
+
+      if (userSnap.data()?.is_admin != true)
+        throw new Error(`User need Admin role.`);
+
+      logger.debug(
+        `[paintService.addTagAdmin] paintRef: brands/${data.brandId}/paints/${data.paintId}`,
+      );
+      const paintRef = firestore.doc(
+        `brands/${data.brandId}/paints/${data.paintId}`,
+      );
+      const paintSnapshot = await paintRef.get();
+      if (!paintSnapshot.exists)
+        throw new Error(
+          `Paint ${data.paintId} not found in brand ${data.brandId}.`,
+        );
+      const currentDate = new Date();
+      const body = {
+        user_id: null,
+        is_global: true,
+        paint_id: data.paintId,
+        brand_id: data.brandId,
+        tag: data.tag,
+        created_at: currentDate,
+        updated_at: currentDate,
+      };
+      logger.debug(
+        `[paintService.addTag] ${documents.paint_tag}: ${JSON.stringify(body)}`,
+      );
+      const addTagResponse = await this.firebaseService.setOrAddDocument(
+        documents.paint_tag,
+        body,
+      );
+
+      if (!addTagResponse.executed) throw Error(addTagResponse.message);
+
+      return {
+        executed: true,
+        message: '',
+        data: { ...body, id: addTagResponse.data._path.segments[1] ?? '' },
+      };
     } catch (error) {
       return { executed: false, message: (error as Error).message, data: null };
     }
@@ -1260,7 +1320,7 @@ export class PaintService {
 
       const query2 = firestore
         .collection(documents.paint_tag)
-        .where('is_global', '==', false)
+        .where('is_global', '==', true)
         .where('brand_id', '==', brandId)
         .where('paint_id', '==', paintId);
 
@@ -1305,13 +1365,28 @@ export class PaintService {
         throw new Error(`This user can not udpate this tag`);
 
       const currentDate = new Date();
-      const response = await this.firebaseService.setOrAddDocument(
+      const setOrAddDocument = await this.firebaseService.setOrAddDocument(
         documents.paint_tag,
         { tag, updated_at: currentDate },
         tagId,
       );
 
-      return { executed: true, message: '', data: response.data };
+      if (!setOrAddDocument.executed)
+        throw new Error(`Error updating the row, please try before later`);
+
+      const response = {
+        id: _tag.data().id,
+        ..._tag.data(),
+        tag,
+        created_at: new Date(_tag.data()?.created_at._seconds * 1000),
+        updated_at: currentDate,
+      };
+
+      return {
+        executed: true,
+        message: '',
+        data: response,
+      };
     } catch (error) {
       return { executed: false, message: (error as Error).message, data: null };
     }

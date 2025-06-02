@@ -548,7 +548,7 @@ export class PaintController {
   }
 
   @UseGuards(FirebaseAuthGuard)
-  @Post('/tags')
+  @Post('/user/tags')
   @HttpCode(200)
   @ApiOperation({
     summary: 'Add tag to paint',
@@ -560,7 +560,24 @@ export class PaintController {
   @ApiResponse({ status: 200, description: 'Add Tag successfully' })
   addTag(@Req() req, @Body() dto: SendAddTag) {
     const currentUser = req.user;
+    console.log('currentUser', currentUser);
     return this._paintService.addTag({ ...dto, userId: currentUser.uid });
+  }
+
+  @UseGuards(FirebaseAuthGuard)
+  @Post('/user/tags/admin')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Add tag to paint as Admin',
+  })
+  @ApiBody({
+    type: SendAddTag,
+    description: 'Payload for add tag to a paint',
+  })
+  @ApiResponse({ status: 200, description: 'Add Tag successfully' })
+  addTagAdmin(@Req() req, @Body() dto: SendAddTag) {
+    const currentUser = req.user;
+    return this._paintService.addTagAdmin({ ...dto, userId: currentUser.uid });
   }
 
   @UseGuards(FirebaseAuthGuard)
