@@ -1,0 +1,283 @@
+import { Injectable } from '@nestjs/common';
+import { FirebaseService } from '../../firebase/firebase.service';
+import { SendAddItem } from '../dto/SendAddItem.dto';
+import { ApiResponse } from 'src/utils/interfaces';
+import { documents } from 'src/utils/enums/documents.enum';
+import { SendCreateProject } from '../dto/SendCreateProject.dto';
+
+@Injectable()
+export class ProjectService {
+  constructor(private readonly firebaseService: FirebaseService) {}
+
+  async healthCheck() {
+    return { executed: true, message: 'OK', microservice: 'Painting' };
+  }
+
+  async createProject(
+    data: SendCreateProject,
+    userId: string,
+  ): Promise<ApiResponse> {
+    const response: ApiResponse = {
+      executed: true,
+      message: '',
+      data: null,
+    };
+    try {
+      const firestore = this.firebaseService.returnFirestore();
+      const currentDate = new Date();
+
+      const collectionRef = firestore.collection(documents.project);
+      const docRef = collectionRef.doc();
+
+      const dataWithId = {
+        ...data,
+        name_lower: data.name.toLowerCase(),
+        user_id: userId,
+        created_at: currentDate,
+        updated_at: currentDate,
+        id: docRef.id,
+      };
+
+      await docRef.set(dataWithId);
+
+      response.data = dataWithId;
+    } catch (error) {
+      response.message = error.message;
+      response.executed = false;
+    } finally {
+      return response;
+    }
+  }
+
+  async updateProject(
+    projectId: string,
+    userId: string,
+    data: SendCreateProject,
+  ) {
+    const response: ApiResponse = {
+      executed: true,
+      message: '',
+      data: null,
+    };
+    try {
+      const firestore = this.firebaseService.returnFirestore();
+      const queryProject = await firestore
+        .collection(documents.project)
+        .doc(projectId)
+        .get();
+
+      if (!queryProject.exists) throw new Error(`Project not found`);
+      if (queryProject.data().user_id != userId)
+        throw new Error(`User can not update this project`);
+
+      const currentDate = new Date();
+      await this.firebaseService.setOrAddDocument(
+        documents.project,
+        { ...data, updated_at: currentDate },
+        projectId,
+      );
+    } catch (error) {
+      response.message = error.message;
+      response.executed = false;
+    } finally {
+      return response;
+    }
+  }
+
+  async getMyProjects(
+    userId: string,
+    filters: {
+      name?: string;
+    },
+    limit: number,
+    page: number = 1,
+  ) {
+    const firestore = this.firebaseService.returnFirestore();
+    let query = firestore
+      .collection(documents.project)
+      .where('user_id', '==', userId);
+
+    if (filters.name !== undefined) {
+      const nameFilter = filters.name.toLowerCase();
+      query = query
+        .where('name_lower', '>=', nameFilter)
+        .where('name_lower', '<=', nameFilter + '\uf8ff');
+    }
+
+    const totalSnapshot = await query.get();
+
+    const totalPaints = totalSnapshot.size;
+    const totalPages = Math.ceil(totalPaints / limit);
+    const currentPage = Math.min(Math.max(page, 1), totalPages);
+    const startIndex = (currentPage - 1) * limit;
+    let startAfterDoc = null;
+
+    if (startIndex > 0 && startIndex < totalSnapshot.docs.length) {
+      startAfterDoc = totalSnapshot.docs[startIndex - 1];
+    }
+
+    if (startAfterDoc) {
+      query = query.startAfter(startAfterDoc);
+    }
+
+    const snapshot = await query.limit(limit).get();
+    const projects = snapshot.docs.map((doc) => {
+      const _data = doc.data();
+      return {
+        id: doc.id,
+        ..._data,
+        created_at: new Date(_data?.created_at._seconds * 1000),
+        updated_at: new Date(_data?.updated_at._seconds * 1000),
+      };
+    });
+
+    return {
+      currentPage,
+      totalPaints,
+      totalPages,
+      limit,
+      projects,
+    };
+  }
+
+  async addItem(data: SendAddItem & { userId: string }) {
+    const response: ApiResponse = {
+      executed: true,
+      message: '',
+      data: null,
+    };
+    try {
+      const firestore = this.firebaseService.returnFirestore();
+      const queryProject = await firestore
+        .collection(documents.project)
+        .doc(data.project_id)
+        .get();
+      const project = queryProject.data();
+
+      // Validations
+      if (!queryProject.exists) throw new Error(`Project not found`);
+      if (project.user_id != data.userId)
+        new Error(`Only owner can update the project.`);
+
+      const queryProjectItem = await firestore
+        .collection(documents.project_item)
+        .where('project_id', '==', data.project_id)
+        .where('table', '==', data.table)
+        .where('table_id', '==', data.table_id)
+        .limit(1)
+        .get();
+
+      if (!queryProjectItem.empty) {
+        const _projectItem = queryProjectItem.docs[0];
+        response.data = { id: _projectItem.id, ..._projectItem.data() };
+        return;
+      }
+      await this.validateTableCases(data);
+      // Validations
+
+      const collectionRef = firestore.collection(documents.project_item);
+      const docRef = collectionRef.doc();
+      const currentDate = new Date();
+      const dataWithId = {
+        ...data,
+        created_at: currentDate,
+        updated_at: currentDate,
+        id: docRef.id,
+      };
+
+      await docRef.set(dataWithId);
+      response.data = dataWithId;
+    } catch (error) {
+      response.message = error.message;
+      response.executed = false;
+    } finally {
+      return response;
+    }
+  }
+
+  async validateTableCases(data: SendAddItem): Promise<void> {
+    const firestore = this.firebaseService.returnFirestore();
+    if (data.table == 'paint') {
+      if (!data.brand_id)
+        throw new Error(`To add a paint 'brand_id' is required.`);
+      const queryPaint = await firestore
+        .doc(`brands/${data.brand_id}/paints/${data.table_id}`)
+        .get();
+      if (!queryPaint.exists)
+        throw new Error(
+          `Paint '${data.table_id}' was not found in Brand: '${data.brand_id}'`,
+        );
+    } else if (data.table == 'palette') {
+      const queryPalette = await firestore
+        .doc(`palettes/${data.table_id}`)
+        .get();
+      if (!queryPalette.exists)
+        throw new Error(`Palette '${data.table_id}' was not found`);
+    } else if (data.table == 'image') {
+      const queryImages = await firestore
+        .doc(`user_color_images/${data.table_id}`)
+        .get();
+      if (!queryImages.exists)
+        throw new Error(`Image '${data.table_id}' was not found`);
+    } else throw new Error(`Table '${data.table}' not available`);
+  }
+
+  async removeItem(projectItemId: string) {
+    const response: ApiResponse = {
+      executed: true,
+      message: '',
+      data: null,
+    };
+    try {
+      const firestore = this.firebaseService.returnFirestore();
+      const queryProjectItem = await firestore
+        .collection(documents.project_item)
+        .doc(projectItemId)
+        .get();
+
+      if (!queryProjectItem.exists)
+        throw new Error(`Project item ${projectItemId} was not found`);
+
+      await this.firebaseService.deleteDocument(
+        documents.project_item,
+        projectItemId,
+      );
+    } catch (error) {
+      response.message = error.message;
+      response.executed = false;
+    } finally {
+      return response;
+    }
+  }
+
+  async deleteProject(projectId: string, userId: string) {
+    const response: ApiResponse = {
+      executed: true,
+      message: '',
+      data: null,
+    };
+    try {
+      const firestore = this.firebaseService.returnFirestore();
+      const queryProject = await firestore
+        .collection(documents.project)
+        .doc(projectId)
+        .get();
+
+      if (!queryProject.exists)
+        throw new Error(`Project ${projectId} was not found`);
+      if (queryProject.data().user_id != userId)
+        throw new Error(`User can not delete this project`);
+
+      await this.firebaseService.deleteDocument(documents.project, projectId);
+    } catch (error) {
+      response.message = error.message;
+      response.executed = false;
+    } finally {
+      return response;
+    }
+  }
+
+  async sharedProject() {}
+
+  async getProject() {}
+}
