@@ -18,6 +18,7 @@ import { Configuration } from './config/utils/config.keys';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { LoggingInterceptor } from './interceptors/log/log.interceptor';
 import { ResponseInterceptor } from './interceptors/response/response.interceptor';
+import { ProjectModule } from './modules/project/project.module';
 // import { EmailModule } from './modules/email/email.module';
 
 @Module({
@@ -25,6 +26,7 @@ import { ResponseInterceptor } from './interceptors/response/response.intercepto
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ProjectModule,
     ConfigurationModule,
     AuthModule,
     ImageModule,

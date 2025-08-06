@@ -29,8 +29,10 @@ export class ProjectService {
       const collectionRef = firestore.collection(documents.project);
       const docRef = collectionRef.doc();
 
+      const _public = data?.public == true ? true : false;
       const dataWithId = {
         ...data,
+        public: _public,
         name_lower: data.name.toLowerCase(),
         user_id: userId,
         created_at: currentDate,
@@ -70,12 +72,31 @@ export class ProjectService {
       if (queryProject.data().user_id != userId)
         throw new Error(`User can not update this project`);
 
+      const project = queryProject.data();
       const currentDate = new Date();
+      const name_lower = project?.name ? project.name.toLowerCase() : undefined;
+      const _public =
+        data.public != undefined && project.public != data.public
+          ? data.public
+          : project.public;
+
+      const body = {
+        ...data,
+        updated_at: currentDate,
+        name_lower,
+        public: _public,
+      };
       await this.firebaseService.setOrAddDocument(
         documents.project,
-        { ...data, updated_at: currentDate },
+        body,
         projectId,
       );
+      response.data = {
+        ...body,
+        id: projectId,
+        user_id: userId,
+        created_at: project.created_at.toDate(),
+      };
     } catch (error) {
       response.message = error.message;
       response.executed = false;
@@ -106,8 +127,8 @@ export class ProjectService {
 
     const totalSnapshot = await query.get();
 
-    const totalPaints = totalSnapshot.size;
-    const totalPages = Math.ceil(totalPaints / limit);
+    const totalProjects = totalSnapshot.size;
+    const totalPages = Math.ceil(totalProjects / limit);
     const currentPage = Math.min(Math.max(page, 1), totalPages);
     const startIndex = (currentPage - 1) * limit;
     let startAfterDoc = null;
@@ -133,7 +154,7 @@ export class ProjectService {
 
     return {
       currentPage,
-      totalPaints,
+      totalProjects,
       totalPages,
       limit,
       projects,
@@ -197,7 +218,7 @@ export class ProjectService {
 
   async validateTableCases(data: SendAddItem): Promise<void> {
     const firestore = this.firebaseService.returnFirestore();
-    if (data.table == 'paint') {
+    if (data.table == 'paints') {
       if (!data.brand_id)
         throw new Error(`To add a paint 'brand_id' is required.`);
       const queryPaint = await firestore
@@ -207,13 +228,13 @@ export class ProjectService {
         throw new Error(
           `Paint '${data.table_id}' was not found in Brand: '${data.brand_id}'`,
         );
-    } else if (data.table == 'palette') {
+    } else if (data.table == 'palettes') {
       const queryPalette = await firestore
         .doc(`palettes/${data.table_id}`)
         .get();
       if (!queryPalette.exists)
         throw new Error(`Palette '${data.table_id}' was not found`);
-    } else if (data.table == 'image') {
+    } else if (data.table == 'user_color_images') {
       const queryImages = await firestore
         .doc(`user_color_images/${data.table_id}`)
         .get();

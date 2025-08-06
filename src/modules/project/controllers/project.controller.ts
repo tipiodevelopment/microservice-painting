@@ -3,7 +3,9 @@ import {
   Controller,
   Get,
   HttpCode,
+  Param,
   Post,
+  Put,
   Query,
   Req,
   UseGuards,
@@ -16,8 +18,8 @@ import { FirebaseAuthGuard } from 'src/modules/firebase/firebase-auth.guard';
 import { SendAddItem } from '../dto/SendAddItem.dto';
 import { SendCreateProject } from '../dto/SendCreateProject.dto';
 
-@ApiTags('Flags')
-@Controller('flags')
+@ApiTags('Project')
+@Controller('project')
 export class ProjectController {
   constructor(private readonly _projectService: ProjectService) {}
 
@@ -41,16 +43,17 @@ export class ProjectController {
   async getMyProjects(
     @Req() req,
     @Query('name') name,
-    @Query('limit') limit = 10,
-    @Query('page') page: number = 1,
+    @Query('limit') limit: string = '10',
+    @Query('page') page: string = '1',
   ) {
     try {
+      console.log('limit', limit, typeof limit);
       const currentUser = req.user;
       return this._projectService.getMyProjects(
         currentUser.uid,
         { name },
-        limit,
-        page,
+        parseInt(limit),
+        parseInt(page),
       );
     } catch (error) {
       executeError(error);
@@ -66,6 +69,28 @@ export class ProjectController {
     try {
       const currentUser = req.user;
       return this._projectService.createProject(body, currentUser.uid);
+    } catch (error) {
+      executeError(error);
+    }
+  }
+
+  @UseGuards(FirebaseAuthGuard)
+  @Put('/:project_id')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Add project' })
+  @ApiResponse({ status: 200, description: 'OK' })
+  async updateProject(
+    @Req() req,
+    @Body() body: SendCreateProject,
+    @Param('project_id') project_id: string,
+  ) {
+    try {
+      const currentUser = req.user;
+      return this._projectService.updateProject(
+        project_id,
+        currentUser.uid,
+        body,
+      );
     } catch (error) {
       executeError(error);
     }
