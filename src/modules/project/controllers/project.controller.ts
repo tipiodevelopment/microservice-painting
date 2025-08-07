@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Param,
@@ -17,6 +18,7 @@ import { executeError } from '../../../utils/error';
 import { FirebaseAuthGuard } from 'src/modules/firebase/firebase-auth.guard';
 import { SendAddItem } from '../dto/SendAddItem.dto';
 import { SendCreateProject } from '../dto/SendCreateProject.dto';
+import { SendAddSharedProject } from '../dto/SendAddSharedProject';
 
 @ApiTags('Project')
 @Controller('project')
@@ -77,7 +79,7 @@ export class ProjectController {
   @UseGuards(FirebaseAuthGuard)
   @Put('/:project_id')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Add project' })
+  @ApiOperation({ summary: 'Edit project' })
   @ApiResponse({ status: 200, description: 'OK' })
   async updateProject(
     @Req() req,
@@ -97,17 +99,105 @@ export class ProjectController {
   }
 
   @UseGuards(FirebaseAuthGuard)
-  @Post('/add-item')
+  @Post('/item')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Add project' })
+  @ApiOperation({ summary: 'Add item to project' })
   @ApiResponse({ status: 200, description: 'OK' })
   async projectAddItem(@Req() req, @Body() body: SendAddItem) {
     try {
       const currentUser = req.user;
       return this._projectService.addItem({
         ...body,
-        userId: currentUser.uid,
+        user_id: currentUser.uid,
       });
+    } catch (error) {
+      executeError(error);
+    }
+  }
+
+  @UseGuards(FirebaseAuthGuard)
+  @Delete('/item/:item_id')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Delete item from project' })
+  @ApiResponse({ status: 200, description: 'OK' })
+  async projectDeleteItem(@Req() req, @Param('item_id') item_id: string) {
+    try {
+      const currentUser = req.user;
+      return this._projectService.removeItem(item_id, currentUser.uid);
+    } catch (error) {
+      executeError(error);
+    }
+  }
+
+  @UseGuards(FirebaseAuthGuard)
+  @Delete('/:project_id')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Delete item from project' })
+  @ApiResponse({ status: 200, description: 'OK' })
+  async projectDelete(@Req() req, @Param('project_id') project_id: string) {
+    try {
+      const currentUser = req.user;
+      return this._projectService.deleteProject(project_id, currentUser.uid);
+    } catch (error) {
+      executeError(error);
+    }
+  }
+
+  @UseGuards(FirebaseAuthGuard)
+  @Post('/add-shared-project')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Add shared Project' })
+  @ApiResponse({ status: 200, description: 'OK' })
+  async addSharedProject(@Req() req, @Body() body: SendAddSharedProject) {
+    try {
+      const currentUser = req.user;
+      return this._projectService.addSharedProject({
+        ...body,
+        user_triggered_action: currentUser.uid,
+      });
+    } catch (error) {
+      executeError(error);
+    }
+  }
+
+  @UseGuards(FirebaseAuthGuard)
+  @Delete('/:project_id/shared-project')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Add shared Project' })
+  @ApiResponse({ status: 200, description: 'OK' })
+  async removeSharedProject(
+    @Req() req,
+    @Param('project_id') project_id: string,
+  ) {
+    try {
+      const currentUser = req.user;
+      return this._projectService.removeSharedProject({
+        project_id,
+        user_id: currentUser.uid,
+      });
+    } catch (error) {
+      executeError(error);
+    }
+  }
+
+  @UseGuards(FirebaseAuthGuard)
+  @Get('/shared-project')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Get shared projects' })
+  @ApiResponse({ status: 200, description: 'OK' })
+  async getSharedProjects(
+    @Req() req,
+    @Query('limit') limit: string = '10',
+    @Query('page') page: string = '1',
+  ) {
+    try {
+      console.log('limit', limit, typeof limit);
+      const currentUser = req.user;
+      return this._projectService.getSharedProjects(
+        currentUser.uid,
+        parseInt(limit),
+        parseInt(page),
+      );
     } catch (error) {
       executeError(error);
     }

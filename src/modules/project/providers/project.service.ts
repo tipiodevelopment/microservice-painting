@@ -4,6 +4,7 @@ import { SendAddItem } from '../dto/SendAddItem.dto';
 import { ApiResponse } from 'src/utils/interfaces';
 import { documents } from 'src/utils/enums/documents.enum';
 import { SendCreateProject } from '../dto/SendCreateProject.dto';
+import { SendAddSharedProject } from '../dto/SendAddSharedProject';
 
 @Injectable()
 export class ProjectService {
@@ -152,6 +153,23 @@ export class ProjectService {
       };
     });
 
+    const getItems = async (project) => {
+      const queryProjectItems = await firestore
+        .collection(documents.project_item)
+        .where('project_id', '==', project.id)
+        .get();
+      project.items = queryProjectItems.docs.map((item) => {
+        return {
+          id: project.id,
+          ...item.data(),
+          created_at: new Date(item.data().created_at._seconds * 1000),
+          updated_at: new Date(item.data().updated_at._seconds * 1000),
+        };
+      });
+    };
+
+    await Promise.all(projects.map(getItems));
+
     return {
       currentPage,
       totalProjects,
@@ -161,7 +179,7 @@ export class ProjectService {
     };
   }
 
-  async addItem(data: SendAddItem & { userId: string }) {
+  async addItem(data: SendAddItem & { user_id: string }) {
     const response: ApiResponse = {
       executed: true,
       message: '',
@@ -177,8 +195,8 @@ export class ProjectService {
 
       // Validations
       if (!queryProject.exists) throw new Error(`Project not found`);
-      if (project.user_id != data.userId)
-        new Error(`Only owner can update the project.`);
+      if (project.user_id != data.user_id)
+        throw new Error(`Only owner can update the project.`);
 
       const queryProjectItem = await firestore
         .collection(documents.project_item)
@@ -243,7 +261,7 @@ export class ProjectService {
     } else throw new Error(`Table '${data.table}' not available`);
   }
 
-  async removeItem(projectItemId: string) {
+  async removeItem(projectItemId: string, userId: string) {
     const response: ApiResponse = {
       executed: true,
       message: '',
@@ -258,6 +276,10 @@ export class ProjectService {
 
       if (!queryProjectItem.exists)
         throw new Error(`Project item ${projectItemId} was not found`);
+
+      const _data = queryProjectItem.data();
+      if (_data.userId != userId)
+        throw new Error(`Only owner can update the project.`);
 
       await this.firebaseService.deleteDocument(
         documents.project_item,
@@ -289,6 +311,19 @@ export class ProjectService {
       if (queryProject.data().user_id != userId)
         throw new Error(`User can not delete this project`);
 
+      const queryProjectItems = await firestore
+        .collection(documents.project_item)
+        .where('project_id', '==', projectId)
+        .get();
+
+      const deleteItem = async (item) => {
+        await this.firebaseService.deleteDocument(
+          documents.project_item,
+          item.id,
+        );
+      };
+      await Promise.all(queryProjectItems.docs.map(deleteItem));
+
       await this.firebaseService.deleteDocument(documents.project, projectId);
     } catch (error) {
       response.message = error.message;
@@ -298,7 +333,157 @@ export class ProjectService {
     }
   }
 
-  async sharedProject() {}
+  async addSharedProject(
+    data: SendAddSharedProject & { user_triggered_action: string },
+  ) {
+    const response: ApiResponse = {
+      executed: true,
+      message: '',
+      data: null,
+    };
+    try {
+      const firestore = this.firebaseService.returnFirestore();
+
+      const queryGetProjectShared = await firestore
+        .collection(documents.project_shared)
+        .where('project_id', '==', data.project_id)
+        .where('user_id', '==', data.user_id)
+        .limit(1)
+        .get();
+
+      if (queryGetProjectShared.docs.length > 0) {
+        response.message =
+          'The project already has a previously shared record.';
+      } else {
+        const collectionRef = firestore.collection(documents.project_shared);
+        const docRef = collectionRef.doc();
+        const currentDate = new Date();
+        const dataWithId = {
+          ...data,
+          created_at: currentDate,
+          updated_at: currentDate,
+          id: docRef.id,
+        };
+
+        await docRef.set(dataWithId);
+      }
+    } catch (error) {
+      response.message = error.message;
+      response.executed = false;
+    } finally {
+      return response;
+    }
+  }
+
+  async removeSharedProject(data: SendAddSharedProject) {
+    const response: ApiResponse = {
+      executed: true,
+      message: '',
+      data: null,
+    };
+    try {
+      const firestore = this.firebaseService.returnFirestore();
+
+      const queryGetProjectShared = await firestore
+        .collection(documents.project_shared)
+        .where('project_id', '==', data.project_id)
+        .where('user_id', '==', data.user_id)
+        .limit(1)
+        .get();
+      if (queryGetProjectShared.docs.length > 0) {
+        const project_shared = queryGetProjectShared.docs[0];
+        await this.firebaseService.deleteDocument(
+          documents.project_shared,
+          project_shared.data().id,
+        );
+      }
+    } catch (error) {
+      response.message = error.message;
+      response.executed = false;
+    } finally {
+      return response;
+    }
+  }
+
+  async getSharedProjects(userId: string, limit, page) {
+    const firestore = this.firebaseService.returnFirestore();
+    let query = firestore
+      .collection(documents.project_shared)
+      .where('user_id', '==', userId);
+
+    const totalSnapshot = await query.get();
+
+    const totalProjects = totalSnapshot.size;
+    const totalPages = Math.ceil(totalProjects / limit);
+    const currentPage = Math.min(Math.max(page, 1), totalPages);
+    const startIndex = (currentPage - 1) * limit;
+    let startAfterDoc = null;
+
+    if (startIndex > 0 && startIndex < totalSnapshot.docs.length) {
+      startAfterDoc = totalSnapshot.docs[startIndex - 1];
+    }
+
+    if (startAfterDoc) {
+      query = query.startAfter(startAfterDoc);
+    }
+
+    const snapshot = await query.limit(limit).get();
+    const project_shared: any = snapshot.docs.map((doc) => {
+      const _data = doc.data();
+      return {
+        id: doc.id,
+        ..._data,
+        created_at: new Date(_data?.created_at._seconds * 1000),
+        updated_at: new Date(_data?.updated_at._seconds * 1000),
+      };
+    });
+
+    const getProjects = async (ps) => {
+      const queryProject = await firestore
+        .collection(documents.project)
+        .where('id', '==', ps.project_id)
+        .get();
+      ps.project = queryProject.docs.map((item) => {
+        return {
+          id: ps.id,
+          ...item.data(),
+          created_at: new Date(item.data().created_at._seconds * 1000),
+          updated_at: new Date(item.data().updated_at._seconds * 1000),
+        };
+      });
+
+      const getItems = async (project) => {
+        const queryProjectItems = await firestore
+          .collection(documents.project_item)
+          .where('project_id', '==', project.id)
+          .get();
+        project.items = queryProjectItems.docs.map((item) => {
+          return {
+            id: project.id,
+            ...item.data(),
+            created_at: new Date(item.data().created_at._seconds * 1000),
+            updated_at: new Date(item.data().updated_at._seconds * 1000),
+          };
+        });
+      };
+
+      await Promise.all(ps.project.map(getItems));
+    };
+
+    await Promise.all(project_shared.map(getProjects));
+    console.log(1);
+    const projects = project_shared.map((ps) => {
+      return ps.project;
+    });
+
+    return {
+      currentPage,
+      totalProjects,
+      totalPages,
+      limit,
+      projects,
+    };
+  }
 
   async getProject() {}
 }

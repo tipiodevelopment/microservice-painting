@@ -16,4 +16,5 @@ export enum documents {
   paint_tag = 'paint_tag',
   project = 'project',
   project_item = 'project_item',
+  project_shared = 'project_shared',
 }
