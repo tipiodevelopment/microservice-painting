@@ -13,4 +13,8 @@ export enum documents {
   category = 'category',
   pending_paint_submissions = 'pending_paint_submissions',
   notifications = 'notifications',
+  paint_tag = 'paint_tag',
+  project = 'project',
+  project_item = 'project_item',
+  project_shared = 'project_shared',
 }

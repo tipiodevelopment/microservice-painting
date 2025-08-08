@@ -3,6 +3,8 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { urlencoded, json } from 'express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { setDefaultResultOrder } from 'dns';
+setDefaultResultOrder('ipv4first');
 
 async function bootstrap() {
   const app: any = await NestFactory.create(AppModule);
@@ -10,7 +12,7 @@ async function bootstrap() {
   // redisIoAdapter.appHost = AppModule.appHost;
   // await redisIoAdapter.connectToRedis(AppModule.redisUrl);
   // app.useWebSocketAdapter(redisIoAdapter);
-  app.setGlobalPrefix(AppModule.basePath);
+  // app.setGlobalPrefix(AppModule.basePath);
   app.useGlobalPipes(new ValidationPipe());
 
   app.use(json({ limit: '50mb' }));
@@ -32,7 +34,7 @@ async function bootstrap() {
       showRequestDuration: true,
     },
   });
-
+  console.log('PORT', AppModule.port);
   await app.listen(AppModule.port);
 }
 bootstrap();

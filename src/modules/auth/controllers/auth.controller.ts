@@ -36,11 +36,16 @@ export class AuthController {
   @HttpCode(200)
   @ApiOperation({ summary: 'Health check' })
   @ApiResponse({ status: 200, description: 'OK' })
-  async HealthCheck() {
+  HealthCheck() {
     try {
-      return this.authService.healthCheck();
+      return {
+        executed: true,
+        message: 'OK',
+        microservice: 'Painting',
+      };
     } catch (error) {
-      executeError(error);
+      console.error('ERROR Get health-check ', error);
+      return { status: 'error' };
     }
   }
 

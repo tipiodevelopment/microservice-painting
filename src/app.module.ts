@@ -16,14 +16,17 @@ import { ConfigService } from './config/providers/config.service';
 import { Configuration } from './config/utils/config.keys';
 
 import { APP_INTERCEPTOR } from '@nestjs/core';
-import { LoggingInterceptor } from './interceptors/log/logging.interceptor';
+import { LoggingInterceptor } from './interceptors/log/log.interceptor';
 import { ResponseInterceptor } from './interceptors/response/response.interceptor';
+import { ProjectModule } from './modules/project/project.module';
+// import { EmailModule } from './modules/email/email.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      ignoreEnvFile: true,
+      isGlobal: true,
     }),
+    ProjectModule,
     ConfigurationModule,
     AuthModule,
     ImageModule,
@@ -35,6 +38,7 @@ import { ResponseInterceptor } from './interceptors/response/response.intercepto
     InventoryModule,
     FlagsModule,
     NotificationModule,
+    // EmailModule,
   ],
   providers: [
     {

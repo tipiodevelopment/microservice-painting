@@ -4,7 +4,7 @@ import { SendSavePalettes } from '../dto/SendSavePalettes.dto';
 import { ApiResponse } from '../../../utils/interfaces';
 import { documents } from '../../../utils/enums/documents.enum';
 import { SendSavePalettesPaints } from '../dto/SendSavePalettesPaints.dto';
-import * as moment from 'moment';
+import moment from 'moment';
 
 @Injectable()
 export class PalettesService {
@@ -426,21 +426,24 @@ export class PalettesService {
         created_at: currentDate,
       };
 
-      // try {
-      //   const usersSnapshot = await this.firebaseService.getCollection(
-      //     documents.users,
-      //   );
-      //   const tokens: string[] = [];
-      //   usersSnapshot.data?.forEach((user) => {
-      //     if (Array.isArray(user.fcmTokens)) {
-      //       tokens.push(...user.fcmTokens);
-      //     }
-      //   });
-      //   await this.firebaseService.sendMulticastNotification(tokens, {
-      //     title: '🎨 New Palette Added',
-      //     body: 'Check out the latest color combinations!',
-      //   });
-      // } catch {}
+      try {
+        const userDoc = await this.firebaseService.getDocumentById(
+          documents.users,
+          userId,
+        );
+
+        const tokens: string[] = [];
+        if (Array.isArray(userDoc.data?.fcmTokens)) {
+          tokens.push(...userDoc.data.fcmTokens);
+        }
+
+        if (tokens.length && userDoc.data?.activeNotification) {
+          await this.firebaseService.sendMulticastNotification(tokens, {
+            title: '🎨 New paint added to the palette',
+            body: 'Check out the latest color combinations!',
+          });
+        }
+      } catch {}
     } catch (error) {
       response.message = error.message;
       response.executed = false;
@@ -542,7 +545,10 @@ export class PalettesService {
     return response;
   }
 
-  async deletePalette(palette_id: string): Promise<ApiResponse> {
+  async deletePalette(
+    palette_id: string,
+    userId: string,
+  ): Promise<ApiResponse> {
     const response: ApiResponse = {
       executed: true,
       message: '',
@@ -634,6 +640,26 @@ export class PalettesService {
       // DELETE PALETTE
       await this.firebaseService.deleteDocument(documents.palettes, palette_id);
       console.log('Delete success');
+
+      try {
+        const userDoc = await this.firebaseService.getDocumentById(
+          documents.users,
+          userId,
+        );
+
+        const tokens: string[] = [];
+        if (Array.isArray(userDoc.data?.fcmTokens)) {
+          tokens.push(...userDoc.data.fcmTokens);
+        }
+
+        if (tokens.length && userDoc.data?.activeNotification) {
+          await this.firebaseService.sendMulticastNotification(tokens, {
+            title: '🎨  Paint removed from the palette',
+            body: 'Check out the latest color combinations!',
+          });
+        }
+      } catch {}
+
       response.data = {
         deletedPalete: {
           palette: paletteResponse.data,
