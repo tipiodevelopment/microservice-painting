@@ -278,7 +278,9 @@ export class ProjectService {
         throw new Error(`Project item ${projectItemId} was not found`);
 
       const _data = queryProjectItem.data();
-      if (_data.userId != userId)
+      console.log('_data', _data);
+      console.log('_data.userId', _data.userId, 'userId', userId);
+      if (_data.user_id != userId)
         throw new Error(`Only owner can update the project.`);
 
       await this.firebaseService.deleteDocument(
@@ -471,7 +473,6 @@ export class ProjectService {
     };
 
     await Promise.all(project_shared.map(getProjects));
-    console.log(1);
     const projects = project_shared.map((ps) => {
       return ps.project;
     });
@@ -485,5 +486,63 @@ export class ProjectService {
     };
   }
 
-  async getProject() {}
+  async getPublicProjects(limit, page) {
+    const firestore = this.firebaseService.returnFirestore();
+    let query = firestore
+      .collection(documents.project)
+      .where('public', '==', true)
+      .orderBy('created_at', 'desc');
+
+    const totalSnapshot = await query.get();
+
+    const totalProjects = totalSnapshot.size;
+    const totalPages = Math.ceil(totalProjects / limit);
+    const currentPage = Math.min(Math.max(page, 1), totalPages);
+    const startIndex = (currentPage - 1) * limit;
+    let startAfterDoc = null;
+
+    if (startIndex > 0 && startIndex < totalSnapshot.docs.length) {
+      startAfterDoc = totalSnapshot.docs[startIndex - 1];
+    }
+
+    if (startAfterDoc) {
+      query = query.startAfter(startAfterDoc);
+    }
+
+    const snapshot = await query.limit(limit).get();
+    const projects = snapshot.docs.map((doc) => {
+      const _data = doc.data();
+      return {
+        id: doc.id,
+        ..._data,
+        created_at: new Date(_data?.created_at._seconds * 1000),
+        updated_at: new Date(_data?.updated_at._seconds * 1000),
+      };
+    });
+
+    const getItems = async (project) => {
+      const queryProjectItems = await firestore
+        .collection(documents.project_item)
+        .where('project_id', '==', project.id)
+        .get();
+      project.items = queryProjectItems.docs.map((item) => {
+        return {
+          id: project.id,
+          ...item.data(),
+          created_at: new Date(item.data().created_at._seconds * 1000),
+          updated_at: new Date(item.data().updated_at._seconds * 1000),
+        };
+      });
+    };
+
+    await Promise.all(projects.map(getItems));
+
+    return {
+      currentPage,
+      totalProjects,
+      totalPages,
+      limit,
+      projects,
+    };
+  }
 }
