@@ -5,7 +5,7 @@ on:
     branches:
       - main
       - qa
-      # - development
+      ## - development
 
 jobs:
   build-and-push-image:
